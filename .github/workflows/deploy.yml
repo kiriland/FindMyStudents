@@ -1,0 +1,44 @@
+name: Deploy to AWS Lambda Web Functions
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+permissions:
+  id-token: write # Required for AWS OIDC authentication
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build & Prepare Standalone Artifact
+        run: npm run prep:standalone
+
+      - name: Deploy to AWS Lambda Web Functions
+        run: |
+          aws lambda-web deploy \
+            --name FindMyStudents \
+            --code ./.next/standalone \
+            --create

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
   },
   "dependencies": {
     "next": "16.4.3",
