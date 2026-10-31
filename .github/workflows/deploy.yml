@@ -41,4 +41,9 @@ jobs:
           aws lambda-web deploy \
             --name FindMyStudents \
             --code ./.next/standalone \
+            --entry-point index.js \
+            --endpoint-name production \
+            --endpoint-type HomeRegion \
+            --auto-deployment-mode LatestRevision \
+            --region us-east-1 \
             --create
