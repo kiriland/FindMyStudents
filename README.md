@@ -24,7 +24,7 @@ The default configuration is:
 
 ```dotenv
 AWS_REGION=us-east-1
-DYNAMODB_TABLE_NAME=FindMyStudents-Classes
+DYNAMODB_TABLE_NAME=classes
 ```
 
 Authenticate the machine running Node.js with an AWS CLI profile or an existing AWS role. Signing into the AWS console in Chrome alone does not authenticate the local app. For an IAM Identity Center profile, run `aws sso login --profile your-profile-name` and set `AWS_PROFILE=your-profile-name` in `.env.local`. Use the login method provided by the AWS account administrator if the account does not use Identity Center.
@@ -37,7 +37,7 @@ Create the table in the same account as your AWS profile, in Northern Virginia (
 
 | Setting | Value |
 | --- | --- |
-| Table name | `FindMyStudents-Classes` |
+| Table name | `classes` |
 | Partition key | `school` (String) |
 | Sort key | `courseCode` (String) |
 | Table class | Standard |
@@ -53,12 +53,12 @@ After approving the AWS cost, you can create the table in the console or with th
 
 ```sh
 aws dynamodb create-table --region us-east-1 \
-  --table-name FindMyStudents-Classes \
+  --table-name classes \
   --attribute-definitions AttributeName=school,AttributeType=S AttributeName=courseCode,AttributeType=S \
   --key-schema AttributeName=school,KeyType=HASH AttributeName=courseCode,KeyType=RANGE \
   --billing-mode PROVISIONED \
   --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1
-aws dynamodb wait table-exists --region us-east-1 --table-name FindMyStudents-Classes
+aws dynamodb wait table-exists --region us-east-1 --table-name classes
 ```
 
 Then populate and start the app:
@@ -106,4 +106,4 @@ The existing manual deployment command is:
 aws lambda-web deploy --name FindMyStudents --code ./.next/standalone --create
 ```
 
-Before deploying this branch, configure `DYNAMODB_TABLE_NAME=FindMyStudents-Classes` on the application runtime and give its role `dynamodb:Query` permission on the table. The build workflow's credentials do not supply runtime database access. Keep the table and runtime in `us-east-1`.
+Before deploying this branch, configure `DYNAMODB_TABLE_NAME=classes` on the application runtime and give its role `dynamodb:Query` permission on the table. The build workflow's credentials do not supply runtime database access. Keep the table and runtime in `us-east-1`.
