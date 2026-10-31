@@ -7,12 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
+    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js",
+    "seed": "node --env-file=.env.local scripts/seed.mjs",
+    "test": "node --experimental-strip-types --conditions=react-server --test tests/*.test.mjs"
   },
   "dependencies": {
     "next": "16.4.3",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "@aws-sdk/client-dynamodb": "3.1157.0",
+    "@aws-sdk/lib-dynamodb": "3.1157.0",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
