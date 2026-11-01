@@ -12,7 +12,7 @@ async function ClassList() {
     console.error("Could not load classes:", error instanceof Error ? error.name : "UnknownError");
     return (
       <p role="alert" className="rounded-lg border border-red-300 p-4">
-        Classes could not be loaded. Please try refreshing the page.
+        Could not load classes. Try refreshing the page.
       </p>
     );
   }
@@ -29,7 +29,7 @@ async function ClassList() {
           <h2 className="mt-2 text-xl font-semibold">{course.title}</h2>
           <p className="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">{course.description}</p>
           <a className="mt-5 inline-block underline underline-offset-4" href={course.sourceUrl}>
-            View {course.courseCode} in the Baruch catalog
+            Baruch catalog
           </a>
         </li>
       ))}
@@ -44,7 +44,7 @@ export default function Home() {
         <p className="text-sm font-semibold">FindMyStudents</p>
         <h1 className="mt-2 text-3xl font-bold">Baruch classes</h1>
         <p className="mt-3 text-zinc-600 dark:text-zinc-300">
-          Sample courses from the Baruch College catalog. These are not live class sections or enrollment records.
+          Sample courses from Baruch College.
         </p>
       </header>
       <Suspense fallback={<p role="status">Loading classes...</p>}>
