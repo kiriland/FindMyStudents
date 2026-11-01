@@ -51,7 +51,7 @@ export default function SignupForm() {
       <label htmlFor="password">Password</label>
       <input 
         id="password" 
-        type="text" 
+        type="password" 
         onChange={handlePasswordChange}
       />
       <button type="submit">Sign Up</button>

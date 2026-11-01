@@ -1,0 +1,18 @@
+[
+  {
+    "school": "Baruch College",
+    "courseCode": "CIS 3400",
+    "title": "Database Management Systems",
+    "credits": 3,
+    "description": "Database design, entity relationship models, relational databases, and SQL, with a database application project.",
+    "sourceUrl": "https://baruch-undergraduate.catalog.cuny.edu/courses/0906121"
+  },
+  {
+    "school": "Baruch College",
+    "courseCode": "CIS 4160",
+    "title": "Web Engineering",
+    "credits": 3,
+    "description": "Building and deploying web applications using software engineering practices, JavaScript, Node.js, testing, and cloud services.",
+    "sourceUrl": "https://baruch-undergraduate.catalog.cuny.edu/courses/0906241/general-aoYks"
+  }
+]

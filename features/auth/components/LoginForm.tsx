@@ -29,7 +29,7 @@ export default function LoginForm() {
       });
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch (err) {
       if (err instanceof Error) {
