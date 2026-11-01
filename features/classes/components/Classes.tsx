@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getClasses } from "@/lib/classes";
+import { getClasses } from "@/features/classes/classes-service";
 
 async function ClassList() {
   await connection();
@@ -37,9 +37,9 @@ async function ClassList() {
   );
 }
 
-export default function Home() {
+export default function Classes() {
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
+    <section className="mx-auto w-full max-w-4xl px-6 py-12">
       <header className="mb-8">
         <p className="text-sm font-semibold">FindMyStudents</p>
         <h1 className="mt-2 text-3xl font-bold">Baruch classes</h1>
@@ -50,6 +50,6 @@ export default function Home() {
       <Suspense fallback={<p role="status">Loading classes...</p>}>
         <ClassList />
       </Suspense>
-    </main>
+    </section>
   );
 }

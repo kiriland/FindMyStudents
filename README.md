@@ -1,51 +1,50 @@
-# FindMyStudents
+## Deployment
 
-A class project using Next.js and DynamoDB. The home page shows two sample Baruch courses: CIS 3400 and CIS 4160.
+To package and deploy the application to AWS Lambda Web Functions, run the following commands:
 
-## Run locally
+1. **Build and prepare the standalone package:**
+   ```bash
+   npm run prep:standalone
+   ```
+2. Deploy to AWS Lambda Web Functions:
+   ```bash
+   aws lambda-web deploy --name FindMyStudents --code ./.next/standalone --create
+   ```
+
+## Project structure
+
+The application is a modular monolith: one deployable Next.js application with
+business concerns grouped into feature modules.
+
+```text
+app/                 # Routes and layouts only
+├── (auth)/           # Login, signup, and confirmation routes
+└── (dashboard)/      # Authenticated dashboard
+components/           # Shared UI primitives
+features/
+├── auth/             # Cognito auth client and auth-specific components
+└── classes/          # Course queries and class-list components
+lib/                 # Shared infrastructure configuration
+```
+
+## Local setup
 
 Use Node.js 24.
 
-```sh
+```bash
 npm ci --legacy-peer-deps
 cp .env.example .env.local
-```
-
-The example file contains:
-
-```env
-AWS_REGION=us-east-1
-DYNAMODB_TABLE_NAME=classes
-```
-
-Use an authenticated AWS profile locally. If it is a named profile, add `AWS_PROFILE=your-profile-name` to `.env.local`. Signing in to the AWS website does not sign in the local app.
-
-Keep access keys and tokens out of the code and Git. `.env.local` is ignored; `.env.example` contains only settings. Database calls stay on the server.
-
-```sh
-npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000. The seed script reads `data/classes.json` and skips courses that already exist.
+Fill in the Cognito pool and client IDs in `.env.local` and use an authenticated AWS profile. For a named profile, add `AWS_PROFILE=your-profile-name`. Keep credentials out of Git.
 
-## Database
+## Class data
 
-The table is `classes` in `us-east-1`. Its partition key is `school` and sort key is `courseCode`, both String. It uses Standard storage, 1 read unit, 1 write unit, and no auto scaling.
+The app reads the existing `classes` table in `us-east-1`. No seed command is needed. `data/classes.json` is a reference copy of the two sample courses, not the app's data source.
 
-`lib/classes.ts` queries the Baruch courses. The sample data and catalog links are in `data/classes.json`.
+The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/classes/`.
 
-The app needs `dynamodb:Query`; the seed script needs `dynamodb:PutItem`. Limit these permissions to the classes table.
+Set `DYNAMODB_TABLE_NAME=classes` on the deployed runtime and give its role `dynamodb:Query` permission on this table. AWS credentials are used only on the server.
 
-## Checks and deployment
-
-Run `npm test`, `npm run lint`, and `npm run build`.
-
-The existing workflow deploys `main` to AWS Lambda in `us-east-1`. Pushing `dummydata` does not deploy it. Set `DYNAMODB_TABLE_NAME=classes` on the runtime and give its AWS role permission to query the table.
-
-For a manual deployment:
-
-```sh
-npm run prep:standalone
-aws lambda-web deploy --name FindMyStudents --code ./.next/standalone --create
-```
+Run `npm run lint`, `npx next typegen`, `npx tsc --noEmit`, and `npm run prep:standalone` before merging.
