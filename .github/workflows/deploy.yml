@@ -45,5 +45,9 @@ jobs:
             --endpoint-name production \
             --endpoint-type HomeRegion \
             --auto-deployment-mode LatestRevision \
-            --region us-east-1 \
+            --region ${{ vars.AWS_REGION }}1 \
+            --env AWS_REGION=${{ vars.AWS_REGION }} \
+            --env DYNAMODB_TABLE_NAME=${{ vars.DYNAMODB_TABLE_NAME }} \
+            --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
+            --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
             --create
