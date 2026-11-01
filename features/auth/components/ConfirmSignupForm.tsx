@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { confirmSignUp } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
+import { confirmEmailSignup } from "@/features/auth/auth-client";
 
 export default function ConfirmSignupForm() {
   const [email, setEmail] = useState("");
@@ -23,10 +23,7 @@ export default function ConfirmSignupForm() {
     e.preventDefault();
 
     try {
-      const result = await confirmSignUp({
-        username: email,
-        confirmationCode: code,
-      });
+      const result = await confirmEmailSignup(email, code);
 
       if (result.isSignUpComplete) {
         router.push("/login");

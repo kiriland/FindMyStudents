@@ -1,4 +1,3 @@
-// https://docs.amplify.aws/nextjs/frontend/auth/sign-up/
 "use client"
 
 import {signUp} from "aws-amplify/auth"
