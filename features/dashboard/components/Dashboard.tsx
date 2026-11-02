@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getClasses } from "@/features/classes/classes-service";
+import { getClasses } from "@/features/dashboard/classes-service";
 
 async function ClassList() {
   await connection();
@@ -37,14 +37,14 @@ async function ClassList() {
   );
 }
 
-export default function Classes() {
+export default function Dashboard() {
   return (
     <section className="mx-auto w-full max-w-4xl px-6 py-12">
       <header className="mb-8">
         <p className="text-sm font-semibold">FindMyStudents</p>
         <h1 className="mt-2 text-3xl font-bold">Baruch classes</h1>
         <p className="mt-3 text-zinc-600 dark:text-zinc-300">
-          Sample courses from Baruch College.
+          Courses from Baruch College.
         </p>
       </header>
       <Suspense fallback={<p role="status">Loading classes...</p>}>

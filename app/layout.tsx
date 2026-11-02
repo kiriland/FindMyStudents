@@ -1,6 +1,7 @@
 import AmplifyProvider from "@/components/AmplifyProvider";
 import type { Metadata } from "next";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "FindMyStudents",
@@ -15,7 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <AmplifyProvider>{children}</AmplifyProvider>
+        <AmplifyProvider>
+          <Navbar />
+          {children}
+        </AmplifyProvider>
       </body>
     </html>
   );
