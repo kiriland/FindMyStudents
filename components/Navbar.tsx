@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchAuthSession, signOut } from "aws-amplify/auth";
 import Link from "next/link";
+import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const [email, setEmail] = useState<string | null>();
@@ -27,21 +28,24 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav aria-label="Main navigation">
-      <Link href="/">Home</Link>{" "}
-      <Link href="/dashboard">Dashboard</Link>{" "}
-      {email ? (
-        <>
-          <span>Welcome, {email}</span>{" "}
-          <button type="button" onClick={handleLogout}>Logout</button>{" "}
-        </>
-      ) : (
-        <>
-          <Link href="/login">Login</Link>{" "}
-          <Link href="/signup">Sign Up</Link>{" "}
-        </>
-      )}
-
+    <nav aria-label="Main navigation" className={styles.navbar}>
+      <div className={styles.pages}>
+        <Link href="/">Home</Link>
+        <Link href="/dashboard">Dashboard</Link>
+      </div>
+      <div className={styles.account}>
+        {email ? (
+          <>
+            <span className={styles.welcome} title={email}>Welcome, {email}</span>
+            <button type="button" onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <>
+            <Link href="/login">Login</Link>
+            <Link href="/signup" className={styles.signup}>Sign Up</Link>
+          </>
+        )}
+      </div>
     </nav>
   );
 }
