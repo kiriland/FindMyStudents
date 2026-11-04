@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { signIn } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -19,7 +21,7 @@ export default function LoginForm() {
     setPassword(e.target.value)
   }
 
-  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSignIn(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
     try {
@@ -41,10 +43,10 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSignIn}>
-      <h1>Log In</h1>
-      <label htmlFor="email">Email</label>
-      <input
+    <form onSubmit={handleSignIn} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
+      <h1 className="text-center text-3xl font-bold">Log In</h1>
+      <label htmlFor="email" className="font-semibold">Email</label>
+      <Input
         type="email"
         id="email"
         value={email}
@@ -52,8 +54,8 @@ export default function LoginForm() {
         required
       />
 
-      <label htmlFor="password">Password</label>
-      <input
+      <label htmlFor="password" className="font-semibold">Password</label>
+      <Input
         type="password"
         id="password"
         value={password}
@@ -61,7 +63,7 @@ export default function LoginForm() {
         required
       />
 
-      <button type="submit">Log In</button>
+      <Button type="submit">Log In</Button>
       {error && <p>{error}</p>}
     </form>
   )

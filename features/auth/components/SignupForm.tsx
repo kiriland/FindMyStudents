@@ -3,6 +3,8 @@
 import {signUp} from "aws-amplify/auth"
 import {useState} from "react"
 import {useRouter} from "next/navigation"
+import Button from "@/components/Button";
+import Input from "@/components/Input";
 
 export default function SignupForm() {
 
@@ -19,7 +21,7 @@ export default function SignupForm() {
     setPassword(e.target.value)
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     try {
       const { isSignUpComplete, userId, nextStep } = await signUp({
@@ -40,21 +42,21 @@ export default function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Sign Up</h1>
-      <label htmlFor="email">Email</label>
-      <input 
+    <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
+      <h1 className="text-center text-3xl font-bold">Sign Up</h1>
+      <label htmlFor="email" className="font-semibold">Email</label>
+      <Input 
         type="text" 
         id="email" 
         onChange={handleEmailChange}
       />
-      <label htmlFor="password">Password</label>
-      <input 
+      <label htmlFor="password" className="font-semibold">Password</label>
+      <Input 
         id="password" 
         type="password" 
         onChange={handlePasswordChange}
       />
-      <button type="submit">Sign Up</button>
+      <Button type="submit">Sign Up</Button>
     </form>
   )
 }

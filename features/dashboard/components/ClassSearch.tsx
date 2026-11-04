@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, use, useState } from "react";
+import Input from "@/components/Input";
 import type { Course } from "@/features/dashboard/classes-service";
 
 export default function ClassSearch({ classesPromise }: { classesPromise: Promise<Course[] | null> }) {
@@ -8,17 +9,17 @@ export default function ClassSearch({ classesPromise }: { classesPromise: Promis
 
   return (
     <>
-      <div className="mb-8 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
+      <div className="mb-8 rounded-xl border border-zinc-300 dark:border-zinc-700 p-6">
         <label htmlFor="class-search" className="block text-xl font-semibold">
           Find a Class
         </label>
-        <input
+        <Input
           id="class-search"
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by course code or class name..."
-          className="mt-4 w-full rounded-lg border border-zinc-300 p-3 dark:border-zinc-700"
+          className="mt-4"
         />
       </div>
       <Suspense fallback={<p role="status">Loading classes...</p>}>
@@ -58,7 +59,7 @@ function ClassResults({ classesPromise, search }: {
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2">
           {filteredClasses.map((course) => (
-            <li key={course.courseCode} className="rounded-lg border border-zinc-300 p-6 dark:border-zinc-700">
+            <li key={course.courseCode} className="rounded-xl border border-zinc-300 dark:border-zinc-700 p-6">
               <p className="text-sm font-semibold">{course.courseCode} · {course.credits} credits</p>
               <h2 className="mt-2 text-xl font-semibold">{course.title}</h2>
               <p className="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">{course.description}</p>
