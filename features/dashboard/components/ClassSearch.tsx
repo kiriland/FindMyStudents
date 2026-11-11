@@ -4,27 +4,10 @@ import { Suspense, use, useState } from "react";
 import type { Course } from "@/features/dashboard/classes-service";
 
 export default function ClassSearch({ classesPromise }: { classesPromise: Promise<Course[] | null> }) {
-  const [search, setSearch] = useState("");
-
   return (
-    <>
-      <div className="mb-8 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
-        <label htmlFor="class-search" className="block text-xl font-semibold">
-          Find a Class
-        </label>
-        <input
-          id="class-search"
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by course code or class name..."
-          className="mt-4 w-full rounded-lg border border-zinc-300 p-3 dark:border-zinc-700"
-        />
-      </div>
-      <Suspense fallback={<p role="status">Loading classes...</p>}>
-        <ClassResults classesPromise={classesPromise} search={search} />
-      </Suspense>
-    </>
+    <Suspense fallback={<p role="status">Loading classes...</p>}>
+      <ClassResults classesPromise={classesPromise} />
+    </Suspense>
   );
 }
 
@@ -71,10 +54,9 @@ function searchCourses(classes: Course[], search: string, department: string) {
     .map((result) => result.course);
 }
 
-function ClassResults({ classesPromise, search }: {
-  classesPromise: Promise<Course[] | null>;
-  search: string;
-}) {
+function ClassResults({ classesPromise }: { classesPromise: Promise<Course[] | null> }) {
+  const [search, setSearch] = useState("");
+  const [department, setDepartment] = useState("");
   const classes = use(classesPromise);
 
   if (classes === null) {
@@ -85,11 +67,45 @@ function ClassResults({ classesPromise, search }: {
     return <p>No classes have been added yet.</p>;
   }
 
-  const filteredClasses = searchCourses(classes, search, "");
+  const departments = [...new Set(classes.map((course) => getDepartment(course.courseCode)))].filter(Boolean).sort();
+  const filteredClasses = searchCourses(classes, search, department);
+
+  function clearFilters() {
+    setSearch("");
+    setDepartment("");
+  }
 
   return (
-      filteredClasses.length === 0 ? (
-        <p>No classes match your search.</p>
+    <>
+      <div className="mb-8 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
+        <label htmlFor="class-search" className="block text-xl font-semibold">Find a Class</label>
+        <input
+          id="class-search"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Course code, number, name or keyword"
+          className="mt-4 w-full rounded-lg border border-zinc-300 p-3 dark:border-zinc-700"
+        />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label htmlFor="department" className="block font-semibold">Department</label>
+            <select
+              id="department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-zinc-300 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <option value="">All departments</option>
+              {departments.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+          {(search || department) && <button type="button" onClick={clearFilters} className="px-3 py-2 underline underline-offset-4">Clear filters</button>}
+        </div>
+      </div>
+      <p role="status" className="mb-4 text-sm text-zinc-600 dark:text-zinc-300">{filteredClasses.length} {filteredClasses.length === 1 ? "course" : "courses"} found</p>
+      {filteredClasses.length === 0 ? (
+        <p>No classes match your search and department. Try clearing the filters.</p>
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2">
           {filteredClasses.map((course) => (
@@ -103,6 +119,7 @@ function ClassResults({ classesPromise, search }: {
             </li>
           ))}
         </ul>
-      )
+      )}
+    </>
   );
 }
