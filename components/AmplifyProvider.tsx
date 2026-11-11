@@ -1,12 +1,12 @@
 "use client";
 
 import "@/lib/amplify";
+import AuthProvider from "@/features/auth/components/AuthProvider";
 
-// Initializes that configuration within your client-side application
 export default function AmplifyProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <AuthProvider>{children}</AuthProvider>;
 }
