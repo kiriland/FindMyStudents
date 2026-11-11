@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchAuthSession, signOut } from "aws-amplify/auth";
+import { useState } from "react";
+import { signOut } from "aws-amplify/auth";
 import Link from "next/link";
+import { useAuth } from "@/features/auth/components/AuthProvider";
 import Button, { buttonClass } from "@/components/Button";
 
 export default function Navbar() {
-  const [email, setEmail] = useState<string | null>();
+  const { account, isLoading, error } = useAuth();
+  const [logoutError, setLogoutError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   function closeMenu() {
@@ -14,24 +16,14 @@ export default function Navbar() {
   }
 
   async function handleLogout() {
-    await signOut();
-    setEmail(null);
-    closeMenu();
-  }
-
-  useEffect(() => {
-    async function updateUser() {
-      try {
-        const session = await fetchAuthSession();
-        const email = session.tokens?.idToken?.payload.email;
-        setEmail(typeof email === "string" ? email : null);
-      } catch {
-        setEmail(null);
-      }
+    setLogoutError("");
+    try {
+      await signOut();
+      closeMenu();
+    } catch {
+      setLogoutError("Unable to log out. Please try again.");
     }
-
-    void updateUser();
-  }, []);
+  }
 
   return (
     <nav
@@ -56,9 +48,13 @@ export default function Navbar() {
           <Link href="/dashboard" className={buttonClass("ghost")} onClick={closeMenu}>Dashboard</Link>
         </div>
         <div className="flex min-w-0 flex-col items-start gap-1 border-t border-zinc-200 pt-3 sm:col-start-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:border-0 sm:pt-0 dark:border-zinc-800">
-          {email ? (
+          {isLoading ? (
+            <span role="status" className="px-3 text-xs sm:px-0">Loading account...</span>
+          ) : account ? (
             <>
-              <span className="max-w-full truncate px-3 text-xs sm:px-0" title={email}>Welcome, {email}</span>
+              <span className="max-w-full truncate px-3 text-xs sm:px-0" title={account.email ?? undefined}>
+                {account.email ? `Welcome, ${account.email}` : "Signed in"}
+              </span>
               <Button variant="ghost" onClick={handleLogout}>Logout</Button>
             </>
           ) : (
@@ -67,6 +63,7 @@ export default function Navbar() {
               <Link href="/signup" className={buttonClass("outline")} onClick={closeMenu}>Sign Up</Link>
             </>
           )}
+          {(error || logoutError) && <p role="alert">{error || logoutError}</p>}
         </div>
       </div>
     </nav>
