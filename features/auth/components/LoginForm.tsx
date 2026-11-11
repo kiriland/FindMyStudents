@@ -4,8 +4,6 @@ import { useRef, useState } from "react";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { useRouter } from "next/navigation";
 import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
-import Button from "@/components/Button";
-import Input from "@/components/Input";
 
 export default function LoginForm() {
   const challenge = useRef<TurnstileInstance>(null);
@@ -55,10 +53,10 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSignIn} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
-      <h1 className="text-center text-3xl font-bold">Log In</h1>
-      <label htmlFor="email" className="font-semibold">Email</label>
-      <Input
+    <form onSubmit={handleSignIn}>
+      <h1>Log In</h1>
+      <label htmlFor="email">Email</label>
+      <input
         type="email"
         id="email"
         value={email}
@@ -66,8 +64,8 @@ export default function LoginForm() {
         required
       />
 
-      <label htmlFor="password" className="font-semibold">Password</label>
-      <Input
+      <label htmlFor="password">Password</label>
+      <input
         type="password"
         id="password"
         value={password}
@@ -76,7 +74,7 @@ export default function LoginForm() {
       />
 
       <AuthChallenge ref={challenge} action="login" />
-      <Button type="submit">Log In</Button>
+      <button type="submit">Log In</button>
       {error && <p role="alert">{error}</p>}
     </form>
   );
