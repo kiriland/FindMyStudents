@@ -6,16 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
     "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1157.0",
+    "@aws-sdk/lib-dynamodb": "^3.1157.0",
+    "@marsidev/react-turnstile": "1.6.3",
     "aws-amplify": "^6.22.2",
     "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "@aws-sdk/client-dynamodb": "^3.1157.0",
-    "@aws-sdk/lib-dynamodb": "^3.1157.0",
     "server-only": "0.0.1"
   },
   "devDependencies": {
@@ -23,9 +23,6 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10",
-    "eslint-config-next": "16.4.3",
-    "eslint-plugin-import-x": "^4.17.1",
     "tailwindcss": "^4",
     "typescript": "^6"
   }

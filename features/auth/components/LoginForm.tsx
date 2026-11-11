@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "aws-amplify/auth";
+import { useRef, useState } from "react";
+import { signInWithEmail } from "@/features/auth/auth-client";
 import { useRouter } from "next/navigation";
+import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
 
 export default function LoginForm() {
+  const challenge = useRef<TurnstileInstance>(null);
+  const submitting = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,24 +15,30 @@ export default function LoginForm() {
   const router = useRouter();
 
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEmail(e.target.value)
+    setEmail(e.target.value);
   }
 
   function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setPassword(e.target.value)
+    setPassword(e.target.value);
   }
 
-  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSignIn(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    if (submitting.current) return;
+    submitting.current = true;
+    setError("");
+    let token: string | undefined;
     try {
-      const { isSignedIn, nextStep } = await signIn({
-        username: email,
-        password: password,
-      });
+      token = getChallengeToken(challenge.current);
+      const { isSignedIn, nextStep } = await signInWithEmail(email, password, token);
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
         router.push("/");
+      } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
+        router.push("/confirm-signup");
+      } else {
+        setError("Additional sign-in verification is required.");
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -37,6 +46,9 @@ export default function LoginForm() {
       } else {
         setError("Something went wrong. Please try again.");
       }
+    } finally {
+      if (token) challenge.current?.reset();
+      submitting.current = false;
     }
   }
 
@@ -61,8 +73,9 @@ export default function LoginForm() {
         required
       />
 
+      <AuthChallenge ref={challenge} action="login" />
       <button type="submit">Log In</button>
-      {error && <p>{error}</p>}
+      {error && <p role="alert">{error}</p>}
     </form>
-  )
+  );
 }
