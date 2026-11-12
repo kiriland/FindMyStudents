@@ -1,15 +1,23 @@
 
 "use client";
 
-import { useState } from "react";
-import { signUp } from "aws-amplify/auth";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+
 import Button from "@/components/Button";
 import Input from "@/components/Input";
+import { signUpWithEmail } from "@/features/auth/auth-client";
+import AuthChallenge, {
+  getChallengeToken,
+  type TurnstileInstance,
+} from "./AuthChallenge";
 
 export default function SignupForm() {
+  const challenge = useRef<TurnstileInstance>(null);
+  const submitting = useRef(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,36 +25,49 @@ export default function SignupForm() {
 
   const router = useRouter();
 
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    e: React.SubmitEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
+
+    if (submitting.current) return;
+
+    submitting.current = true;
     setError("");
     setLoading(true);
 
+    let token: string | undefined;
+
     try {
-      const { nextStep } = await signUp({
-        username: email.trim(),
+      token = getChallengeToken(challenge.current);
+
+      const { nextStep } = await signUpWithEmail(
+        email.trim(),
         password,
-        options: {
-          userAttributes: {
-            email: email.trim(),
-          },
-        },
-      });
+        token
+      );
 
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
         router.push("/confirm-signup");
       } else if (nextStep.signUpStep === "DONE") {
         router.push("/login");
       } else {
-        setError("Additional steps are required to complete registration.");
+        setError(
+          "Additional steps are required to complete registration."
+        );
       }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong. Please try again."
+          : "Sign-up failed. Please try again."
       );
     } finally {
+      if (token) {
+        challenge.current?.reset();
+      }
+
+      submitting.current = false;
       setLoading(false);
     }
   }
@@ -54,9 +75,9 @@ export default function SignupForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm sm:p-10"
+      className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-10"
     >
-      {/* Logo and Welcome Section */}
+      {/* LOGO AND WELCOME */}
       <div className="mb-8 text-center">
         <div className="mx-auto mb-5 flex justify-center">
           <Image
@@ -64,9 +85,9 @@ export default function SignupForm() {
             alt="FindMyStudents Logo"
             width={90}
             height={90}
-            className="h-[90px] w-[90px] object-contain"
             unoptimized
             priority
+            className="h-[90px] w-[90px] object-contain"
           />
         </div>
 
@@ -84,7 +105,7 @@ export default function SignupForm() {
         </p>
       </div>
 
-      {/* Registration Fields */}
+      {/* REGISTRATION FIELDS */}
       <div className="space-y-5">
         <div>
           <label
@@ -134,7 +155,15 @@ export default function SignupForm() {
           </p>
         </div>
 
-        {/* Error Message */}
+        {/* SECURITY VERIFICATION */}
+        <div className="min-w-0 overflow-hidden">
+          <AuthChallenge
+            ref={challenge}
+            action="signup"
+          />
+        </div>
+
+        {/* ERROR MESSAGE */}
         {error && (
           <p
             role="alert"
@@ -144,7 +173,7 @@ export default function SignupForm() {
           </p>
         )}
 
-        {/* Sign Up Button */}
+        {/* SIGNUP BUTTON */}
         <Button
           type="submit"
           disabled={loading}
@@ -154,7 +183,7 @@ export default function SignupForm() {
         </Button>
       </div>
 
-      {/* Login Link */}
+      {/* LOGIN LINK */}
       <p className="mt-7 text-center text-sm text-zinc-600">
         Already have an account?{" "}
         <Link
@@ -165,7 +194,7 @@ export default function SignupForm() {
         </Link>
       </p>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <div className="mt-7 border-t border-zinc-100 pt-5 text-center">
         <p className="text-xs text-zinc-500">
           Connect. Collaborate. Succeed.

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmEmailSignup } from "@/features/auth/auth-client";
-import Button from "@/components/Button";
-import Input from "@/components/Input";
 
 export default function ConfirmSignupForm() {
   const [email, setEmail] = useState("");
@@ -21,7 +19,7 @@ export default function ConfirmSignupForm() {
     setCode(e.target.value)
   }
 
-  async function handleConfirm(e: React.SubmitEvent<HTMLFormElement>) {
+  async function handleConfirm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     try {
@@ -40,10 +38,10 @@ export default function ConfirmSignupForm() {
   }
 
   return (
-    <form onSubmit={handleConfirm} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
-      <h1 className="text-center text-3xl font-bold">Confirm Sign Up</h1>
-      <label htmlFor="email" className="font-semibold">Email</label>
-      <Input
+    <form onSubmit={handleConfirm}>
+      <h1>Confirm Sign Up</h1>
+      <label htmlFor="email">Email</label>
+      <input
         type="email"
         id="email"
         value={email}
@@ -51,8 +49,8 @@ export default function ConfirmSignupForm() {
         required
       />
 
-      <label htmlFor="code" className="font-semibold">Verification Code</label>
-      <Input
+      <label htmlFor="code">Verification Code</label>
+      <input
         type="text"
         id="code"
         value={code}
@@ -60,7 +58,7 @@ export default function ConfirmSignupForm() {
         required
       />
 
-      <Button type="submit">Verify Email</Button>
+      <button type="submit">Verify Email</button>
       {error && <p>{error}</p>}
     </form>
   );

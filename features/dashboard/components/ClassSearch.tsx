@@ -136,6 +136,49 @@ function LoadingState() {
   );
 }
 
+function getDepartment(courseCode: string) {
+  return courseCode.trim().match(/^[a-z]+/i)?.[0].toUpperCase() ?? "";
+}
+
+function normalizeSearch(text: string) {
+  return text.toLowerCase().replace(/([a-z])(\d)/g, "$1 $2").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function searchCourses(classes: Course[], search: string, department: string) {
+  const query = normalizeSearch(search);
+  const words = query.split(/\s+/).filter(Boolean);
+  const departments = new Set(classes.map((course) => getDepartment(course.courseCode).toLowerCase()));
+
+  if (!query && search.trim()) return [];
+
+  return classes.map((course) => {
+    const code = normalizeSearch(course.courseCode);
+    const number = code.match(/\d+/)?.[0] ?? "";
+    const subject = getDepartment(course.courseCode);
+    const title = normalizeSearch(course.title);
+    const description = normalizeSearch(course.description);
+
+    if (department && subject !== department) return null;
+    const matches = words.every((word) => {
+      if (/^\d+$/.test(word)) return number.startsWith(word);
+      if (departments.has(word)) return subject.toLowerCase() === word;
+      return code.includes(word) || title.includes(word) || description.includes(word);
+    });
+    if (!matches) return null;
+
+    let rank = 5;
+    if (!query || code.replace(/ /g, "") === query.replace(/ /g, "")) rank = 0;
+    else if (number === query) rank = 1;
+    else if (words.every((word) => code.includes(word))) rank = 2;
+    else if (title.includes(query)) rank = 3;
+    else if (words.every((word) => title.includes(word))) rank = 4;
+
+    return { course, rank };
+  }).filter((result) => result !== null)
+    .sort((a, b) => a.rank - b.rank || a.course.courseCode.localeCompare(b.course.courseCode, undefined, { numeric: true }))
+    .map((result) => result.course);
+}
+
 function ClassResults({
   classesPromise,
   search,
@@ -143,6 +186,7 @@ function ClassResults({
   classesPromise: Promise<Course[] | null>;
   search: string;
 }) {
+  const [department, setDepartment] = useState("");
   const classes = use(classesPromise);
 
   if (classes === null) {
@@ -211,18 +255,31 @@ function ClassResults({
     );
   }
 
-  const query = search.toLowerCase().trim();
-
-  const filteredClasses = classes.filter((course) => {
-    return (
-      course.courseCode.toLowerCase().includes(query) ||
-      course.title.toLowerCase().includes(query) ||
-      course.description.toLowerCase().includes(query)
-    );
-  });
+  const query = search.trim();
+  const departments = [...new Set(classes.map((course) => getDepartment(course.courseCode)))].filter(Boolean).sort();
+  const filteredClasses = searchCourses(classes, search, department);
 
   return (
     <section aria-label="Available courses">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor="department" className="block text-sm font-semibold text-zinc-800">Department</label>
+          <select
+            id="department"
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="mt-2 w-full rounded-xl border border-zinc-300 bg-white p-3 text-zinc-900"
+          >
+            <option value="">All departments</option>
+            {departments.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
+        {department && (
+          <button type="button" onClick={() => setDepartment("")} className="rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+            Clear department
+          </button>
+        )}
+      </div>
       {/* RESULTS HEADER */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

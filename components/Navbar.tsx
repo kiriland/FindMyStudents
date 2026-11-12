@@ -1,55 +1,46 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchAuthSession, signOut } from "aws-amplify/auth";
+import { useState } from "react";
+import { signOut } from "aws-amplify/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import Button from "@/components/Button";
+import { useAuth } from "@/features/auth/components/AuthProvider";
 
 export default function Navbar() {
-  const [email, setEmail] = useState<string | null>(null);
+  const { account, isLoading, error } = useAuth();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   const pathname = usePathname();
   const router = useRouter();
+
+  const [menuPathname, setMenuPathname] = useState(pathname);
+  if (menuPathname !== pathname) {
+    setMenuPathname(pathname);
+    setMenuOpen(false);
+  }
 
   function closeMenu() {
     setMenuOpen(false);
   }
 
-  useEffect(() => {
-    async function updateUser() {
-      try {
-        const session = await fetchAuthSession();
-        const userEmail = session.tokens?.idToken?.payload.email;
-
-        setEmail(
-          typeof userEmail === "string" ? userEmail : null
-        );
-      } catch {
-        setEmail(null);
-      }
-    }
-
-    void updateUser();
-  }, [pathname]);
-
   async function handleLogout() {
     if (loggingOut) return;
 
+    setLogoutError("");
     setLoggingOut(true);
 
     try {
       await signOut();
-      setEmail(null);
       closeMenu();
       router.push("/");
       router.refresh();
-    } catch (error) {
-      console.error("Logout failed:", error);
+    } catch {
+      setLogoutError("Unable to log out. Please try again.");
     } finally {
       setLoggingOut(false);
     }
@@ -59,6 +50,8 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
   ];
+
+  const accountEmail = account?.email;
 
   return (
     <nav
@@ -113,23 +106,29 @@ export default function Navbar() {
 
         {/* DESKTOP AUTHENTICATION */}
         <div className="hidden min-w-0 items-center gap-3 md:flex">
-          {email ? (
+          {isLoading ? (
+            <span role="status" className="text-sm text-zinc-500">
+              Loading account...
+            </span>
+          ) : account ? (
             <>
               <span
                 className="max-w-40 truncate text-xs text-zinc-600"
-                title={email}
+                title={accountEmail ?? undefined}
               >
-                {email}
+                {accountEmail
+                  ? `Welcome, ${accountEmail}`
+                  : "Signed in"}
               </span>
 
-              <Button
-                variant="ghost"
+              <button
+                type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="text-zinc-700"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
               >
                 {loggingOut ? "Logging out..." : "Logout"}
-              </Button>
+              </button>
             </>
           ) : (
             <>
@@ -157,13 +156,10 @@ export default function Navbar() {
           aria-expanded={menuOpen}
           aria-controls="mobile-navigation"
           onClick={() => setMenuOpen((previous) => !previous)}
-          className="relative z-50 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-900 transition hover:bg-zinc-100 active:bg-blue-50 md:hidden"
+          className="relative z-50 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-900 transition hover:bg-zinc-100 md:hidden"
         >
           {menuOpen ? (
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -171,15 +167,13 @@ export default function Navbar() {
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              className="h-6 w-6"
             >
               <path d="M18 6 6 18" />
               <path d="m6 6 12 12" />
             </svg>
           ) : (
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -187,6 +181,7 @@ export default function Navbar() {
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              className="h-6 w-6"
             >
               <path d="M4 6h16" />
               <path d="M4 12h16" />
@@ -196,14 +191,13 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* MOBILE DROPDOWN MENU */}
+      {/* MOBILE DROPDOWN */}
       {menuOpen && (
         <div
           id="mobile-navigation"
           className="absolute left-0 right-0 top-full z-50 max-h-[calc(100dvh-80px)] overflow-y-auto border-b border-zinc-200 bg-white px-4 py-5 shadow-xl md:hidden"
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-2">
-
             <p className="mb-2 px-3 text-xs font-bold uppercase tracking-widest text-blue-600">
               Navigation
             </p>
@@ -225,20 +219,26 @@ export default function Navbar() {
 
             <div className="my-3 border-t border-zinc-200" />
 
-            {email ? (
+            {isLoading ? (
+              <p role="status" className="px-4 py-3 text-sm text-zinc-500">
+                Loading account...
+              </p>
+            ) : account ? (
               <>
                 <p className="break-all px-4 py-2 text-sm text-zinc-600">
-                  Signed in as: {email}
+                  {accountEmail
+                    ? `Signed in as: ${accountEmail}`
+                    : "Signed in"}
                 </p>
 
-                <Button
-                  variant="ghost"
+                <button
+                  type="button"
                   onClick={handleLogout}
                   disabled={loggingOut}
-                  className="w-full justify-start text-zinc-700"
+                  className="w-full rounded-xl px-4 py-3 text-left text-base font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
                 >
                   {loggingOut ? "Logging out..." : "Logout"}
-                </Button>
+                </button>
               </>
             ) : (
               <>
@@ -264,6 +264,16 @@ export default function Navbar() {
               Connect. Study. Collaborate.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* AUTHENTICATION ERRORS */}
+      {(error || logoutError) && (
+        <div
+          role="alert"
+          className="border-t border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700"
+        >
+          {error || logoutError}
         </div>
       )}
     </nav>
