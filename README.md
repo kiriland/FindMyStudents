@@ -23,7 +23,7 @@ app/                 # Routes and layouts only
 components/           # Shared UI primitives
 features/
 ├── auth/             # Cognito auth client and auth-specific components
-└── classes/          # Course queries and class-list components
+└── dashboard/        # Course queries and dashboard components
 lib/                 # Shared infrastructure configuration
 ```
 
@@ -41,9 +41,14 @@ Fill in the Cognito pool and client IDs in `.env.local` and use an authenticated
 
 ## Class data
 
+To deploy the scheduled undergraduate catalog importer and run the first sync,
+use `./scripts/deploy-course-importer.sh`. See
+[the importer setup and operations guide](infrastructure/course-importer/README.md)
+for prerequisites, four semester schedules, and manual console runs.
+
 The app reads the existing `classes` table in `us-east-1`. No seed command is needed. `data/classes.json` is a reference copy of the two sample courses, not the app's data source.
 
-The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/classes/`.
+The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/dashboard/`.
 
 Set `DYNAMODB_TABLE_NAME=classes` on the deployed runtime and give its role `dynamodb:Query` permission on this table. AWS credentials are used only on the server.
 

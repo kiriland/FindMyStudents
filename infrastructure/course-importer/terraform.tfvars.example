@@ -1,0 +1,16 @@
+# Defaults reuse the application's EXISTING classes table in us-east-1.
+aws_region = "us-east-1"
+table_name = "classes"
+
+# Defaults auto-discover the current undergraduate catalog on every import.
+# catalog_id = "eWomOQ5Vhakm5DXuN8xt"
+
+# Approximate annual dates, not an official academic calendar. Adjust as needed.
+semester_schedules = {
+  winter = "cron(0 6 2 1 ? *)"
+  spring = "cron(0 6 25 1 ? *)"
+  summer = "cron(0 6 1 6 ? *)"
+  fall   = "cron(0 6 28 8 ? *)"
+}
+
+# schedules_enabled = false

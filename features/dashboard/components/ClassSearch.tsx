@@ -30,7 +30,7 @@ function searchCourses(classes: Course[], search: string, department: string) {
     const code = normalizeSearch(course.courseCode);
     const number = code.match(/\d+/)?.[0] ?? "";
     const subject = getDepartment(course.courseCode);
-    const title = normalizeSearch(course.title);
+    const title = normalizeSearch(course.title || course.courseCode);
     const description = normalizeSearch(course.description);
 
     if (department && subject !== department) return null;
@@ -110,8 +110,8 @@ function ClassResults({ classesPromise }: { classesPromise: Promise<Course[] | n
         <ul className="grid gap-5 sm:grid-cols-2">
           {filteredClasses.map((course) => (
             <li key={course.courseCode} className="rounded-lg border border-zinc-300 p-6 dark:border-zinc-700">
-              <p className="text-sm font-semibold">{course.courseCode} · {course.credits} credits</p>
-              <h2 className="mt-2 text-xl font-semibold">{course.title}</h2>
+              <p className="text-sm font-semibold">{course.courseCode} · {course.credits == null ? "Credits not listed" : `${course.credits} credits`}</p>
+              <h2 className="mt-2 text-xl font-semibold">{course.title || course.courseCode}</h2>
               <p className="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">{course.description}</p>
               <a className="mt-5 inline-block underline underline-offset-4" href={course.sourceUrl}>
                 Baruch catalog
