@@ -26,7 +26,7 @@ export default function AuthChallenge({
     <Turnstile
       ref={ref}
       siteKey={siteKey}
-      options={{ action, appearance: "interaction-only", responseField: false }}
+      options={{ action, size: "flexible", appearance: "interaction-only", responseField: false }}
     />
   );
 }

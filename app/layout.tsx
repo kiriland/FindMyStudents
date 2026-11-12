@@ -1,3 +1,4 @@
+
 import AmplifyProvider from "@/components/AmplifyProvider";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -15,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col bg-white text-zinc-900">
         <AmplifyProvider>
           <Navbar />
           {children}
