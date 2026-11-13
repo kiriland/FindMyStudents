@@ -53,4 +53,6 @@ jobs:
             --env DYNAMODB_TABLE_NAME=${{ vars.DYNAMODB_TABLE_NAME }} \
             --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
             --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
+            --env TURNSTILE_SECRET_KEY=${{ vars.TURNSTILE_SECRET_KEY }} \
+            --env TURNSTILE_ALLOWED_HOSTNAMES=${{ vars.TURNSTILE_ALLOWED_HOSTNAMES }} \
             --create
