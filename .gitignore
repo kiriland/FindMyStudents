@@ -42,3 +42,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Course importer dependencies, bundle, and local Terraform state/configuration
+/services/course-importer/node_modules/
+/services/course-importer/dist/
+/infrastructure/course-importer/.terraform/
+/infrastructure/course-importer/*.tfstate*
+/infrastructure/course-importer/*.tfplan
+/infrastructure/course-importer/terraform.tfvars
+/infrastructure/course-importer/*.auto.tfvars
+/infrastructure/course-importer/importer.zip
+/infrastructure/course-importer/crash.log
