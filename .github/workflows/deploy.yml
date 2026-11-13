@@ -37,9 +37,6 @@ jobs:
         env:
           NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }}
           NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }}
-          TURNSTILE_SECRET_KEY : ${{ vars.TURNSTILE_SECRET_KEY }}
-          NEXT_PUBLIC_TURNSTILE_SITE_KEY : ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
-          TURNSTILE_ALLOWED_HOSTNAMES : $ {{ vars.TURNSTILE_ALLOWED_HOSTNAMES }}
         run: npm run prep:standalone
 
       - name: Deploy to AWS Lambda Web Functions
@@ -57,4 +54,6 @@ jobs:
             --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
             --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
             --env NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }} \
+            --env TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY}} \
+            --env TURNSTILE_ALLOWED_HOSTNAMES${{ secrets.TURNSTILE_ALLOWED_HOSTNAMES }} \
             --create
