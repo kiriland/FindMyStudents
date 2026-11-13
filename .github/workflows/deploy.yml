@@ -56,5 +56,5 @@ jobs:
             --env DYNAMODB_TABLE_NAME=${{ vars.DYNAMODB_TABLE_NAME }} \
             --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
             --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
-            --env NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+            --env NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }} \
             --create

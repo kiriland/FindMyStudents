@@ -11,6 +11,45 @@ To package and deploy the application to AWS Lambda Web Functions, run the follo
    aws lambda-web deploy --name FindMyStudents --code ./.next/standalone --create
    ```
 
+### GitHub Actions configuration
+
+The deployment workflow builds and deploys pushes to `main`, and can also be run
+manually from the Actions tab. In **Settings → Secrets and variables → Actions**,
+configure these repository values:
+
+| Storage | Name | Purpose |
+| --- | --- | --- |
+| Secret | `AWS_DEPLOY_ROLE_ARN` | Deployment role assumed through GitHub OIDC |
+| Secret | `AWS_LAMBDA_EXECUTION_ROLE_ARN` | Role used by the running Web Function |
+| Secret | `TURNSTILE_SECRET_KEY` | Private Cloudflare verification key; deployment only |
+| Variable | `DYNAMODB_TABLE_NAME` | `classes` |
+| Variable | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Public Cognito pool ID |
+| Variable | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Public Cognito app client ID |
+| Variable | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare widget key |
+| Variable | `TURNSTILE_ALLOWED_HOSTNAMES` | Comma-separated production hostnames, without protocols or ports |
+
+Keep the Turnstile secret out of Variables, source files, and build-time env.
+If it was previously printed in an Actions log, rotate it in Cloudflare and
+store the replacement as a GitHub Secret, then remove the old Variable.
+`NEXT_PUBLIC_*` values are embedded in browser JavaScript when Next.js builds;
+storing them as Secrets cannot hide them from visitors. Role ARNs are identifiers,
+not AWS credentials, but the workflow keeps the existing Secret storage for them.
+
+The workflow obtains short-lived AWS credentials through OIDC after building;
+no `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` repository secrets are needed.
+Restrict the AWS deployment role's OIDC trust to audience `sts.amazonaws.com` and
+subject `repo:kiriland/FindMyStudents:ref:refs/heads/main`. A manual run from another
+branch should therefore fail authentication. The deployment role needs the Web
+Function deployment permissions and permission to pass the execution role.
+
+The Turnstile secret is passed as a quoted shell environment variable to the
+deployment command and stored in Lambda's runtime environment. GitHub masks
+configured secrets in logs; do not enable shell tracing (`set -x`), AWS CLI debug
+logging, or print environment variables. Authorized workflow code and AWS
+principals with access to the runtime configuration can still access it. For
+runtime-only secret retrieval and independent rotation, use AWS Secrets Manager
+with application-side retrieval instead.
+
 ## Project structure
 
 The application is a modular monolith: one deployable Next.js application with
