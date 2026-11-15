@@ -61,7 +61,7 @@ export default function ConfirmSignupForm() {
       />
 
       <Button type="submit">Verify Email</Button>
-      {error && <p>{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
     </form>
   );
 }

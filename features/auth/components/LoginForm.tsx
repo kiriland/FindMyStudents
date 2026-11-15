@@ -64,7 +64,7 @@ export default function LoginForm() {
       />
 
       <Button type="submit">Log In</Button>
-      {error && <p>{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
     </form>
   )
 }

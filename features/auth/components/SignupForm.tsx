@@ -24,6 +24,12 @@ export default function SignupForm() {
 
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    if (!email.endsWith("@stu-mail.baruch.cuny.edu")) {
+      setError("This must be a Baruch email that ends in @stu-mail.baruch.cuny.edu");
+      return;
+    }
+
     try {
       const { isSignUpComplete, userId, nextStep } = await signUp({
       username: email,
@@ -54,15 +60,17 @@ export default function SignupForm() {
         type="text" 
         id="email" 
         onChange={handleEmailChange}
+        required
       />
       <label htmlFor="password" className="font-semibold">Password</label>
       <Input 
         id="password" 
         type="password" 
         onChange={handlePasswordChange}
+        required
       />
       <Button type="submit">Sign Up</Button>
-      {error && <p>{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
     </form>
   )
 }
