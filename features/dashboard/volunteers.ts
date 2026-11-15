@@ -1,5 +1,5 @@
 import "server-only";
-import { SCHOOL } from "./course-model";
+import { courseCodeKey, SCHOOL } from "./course-model";
 import type { Course } from "./course-model";
 
 export type Volunteer = {
@@ -46,6 +46,6 @@ const assignments: Record<string, { person: keyof typeof profiles; help: string 
 // Replace this provider with real profile storage later; catalogue caching is separate.
 export async function getVolunteers(course: Pick<Course, "school" | "courseCode">): Promise<Volunteer[]> {
   if (course.school !== SCHOOL.name) return [];
-  const code = course.courseCode.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const code = courseCodeKey(course.courseCode);
   return (assignments[code] ?? []).map(({ person, help }) => ({ ...profiles[person], help }));
 }

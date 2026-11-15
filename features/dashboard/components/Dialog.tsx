@@ -29,7 +29,11 @@ export default function Dialog({ title, onDismiss, children }: {
 
   return (
     <dialog ref={ref} className={styles.dialog} aria-label={title}
-      onCancel={(event) => { event.preventDefault(); onDismiss(); }}
+      onCancel={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onDismiss();
+      }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;
         const bounds = event.currentTarget.getBoundingClientRect();
