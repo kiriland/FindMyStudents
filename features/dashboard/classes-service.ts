@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/dynamodb";
 import { paginateQuery } from "@aws-sdk/lib-dynamodb";
-import { getDepartment, PAGE_SIZE, SCHOOL } from "./course-model";
+import { courseCodeKey, getDepartment, PAGE_SIZE, SCHOOL } from "./course-model";
 import type { Course, CoursePage, CourseQuery } from "./course-model";
 
 const CATALOGUE_TTL = 60 * 60 * 1000;
@@ -89,6 +89,17 @@ export async function findCourses(query: CourseQuery): Promise<CoursePage> {
 
 export async function getCourse(school: string, code: string) {
   if (school !== SCHOOL.slug) return null;
-  const key = normalize(code).replace(/ /g, "");
-  return (await getClasses()).find((course) => normalize(course.courseCode).replace(/ /g, "") === key) ?? null;
+  // Older links contain encoded spaces; route params can retain their encoding.
+  let decoded = code;
+  try {
+    for (let depth = 0; depth < 2 && decoded.includes("%"); depth++) {
+      decoded = decodeURIComponent(decoded);
+    }
+  } catch {
+    return null;
+  }
+  if (decoded.includes("%")) return null;
+  const key = courseCodeKey(decoded);
+  if (!key) return null;
+  return (await getClasses()).find((course) => courseCodeKey(course.courseCode) === key) ?? null;
 }

@@ -40,6 +40,10 @@ export function discoveryHref(query: CourseQuery = { search: "", department: "",
   return `/dashboard${params ? `?${params}` : ""}`;
 }
 
+export function courseCodeKey(code: string) {
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 export function courseHref(course: Pick<Course, "courseCode">) {
-  return `/courses/${SCHOOL.slug}/${encodeURIComponent(course.courseCode)}`;
+  return `/courses/${SCHOOL.slug}/${courseCodeKey(course.courseCode)}`;
 }
