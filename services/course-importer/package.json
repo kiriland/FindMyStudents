@@ -1,0 +1,16 @@
+{
+  "name": "findmystudents-course-importer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1157.0",
+    "@aws-sdk/lib-dynamodb": "^3.1157.0",
+    "html-to-text": "^9.0.5"
+  },
+  "devDependencies": { "esbuild": "^0.25.0" }
+}
