@@ -4,10 +4,9 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="auth-page">
+    <main className="flex min-h-screen items-center justify-center text-black">
       {children}
     </main>
   );
 }
-import "./auth.css";
 

@@ -53,10 +53,11 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSignIn}>
-      <h1>Log In</h1>
-      <label htmlFor="email">Email</label>
+    <form className="flex w-full max-w-[380px] flex-col gap-4 rounded-2xl bg-white p-7.5" onSubmit={handleSignIn}>
+      <h1 className="text-center text-[30px] font-bold">Log In</h1>
+      <label className="text-base font-semibold" htmlFor="email">Email</label>
       <input
+        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         type="email"
         id="email"
         value={email}
@@ -64,8 +65,9 @@ export default function LoginForm() {
         required
       />
 
-      <label htmlFor="password">Password</label>
+      <label className="text-base font-semibold" htmlFor="password">Password</label>
       <input
+        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         type="password"
         id="password"
         value={password}
@@ -74,7 +76,7 @@ export default function LoginForm() {
       />
 
       <AuthChallenge ref={challenge} action="login" />
-      <button type="submit">Log In</button>
+      <button className="cursor-pointer rounded-lg bg-[#a9a9a9] px-4 py-3 font-semibold text-white hover:bg-[#808080]" type="submit">Log In</button>
       {error && <p role="alert">{error}</p>}
     </form>
   );

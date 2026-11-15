@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col bg-white font-[Arial,Helvetica,sans-serif] text-[#171717] dark:bg-[#0a0a0a] dark:text-[#ededed]">
         <AmplifyProvider>
           <Navbar />
           {children}
