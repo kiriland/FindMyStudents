@@ -10,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode;
+  modal: React.ReactNode;
 }) {
   return (
     <html lang="en" className="h-full antialiased">
@@ -19,6 +21,7 @@ export default function RootLayout({
         <AmplifyProvider>
           <Navbar />
           {children}
+          {modal}
         </AmplifyProvider>
       </body>
     </html>
