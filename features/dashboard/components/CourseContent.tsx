@@ -18,15 +18,15 @@ export default async function CourseContent({ params }: { params: CourseParams }
   const department = getDepartment(course.courseCode);
   const volunteers = await getVolunteers(course);
   return (
-    <article>
+    <article key={`${course.school}:${course.courseCode}`}>
       <nav aria-label="Breadcrumb"><ol className={styles.breadcrumbs}>
         <li><Link href={discoveryHref()} prefetch={false}>Courses</Link></li>
         {department && <li><Link href={discoveryHref({ search: "", department, page: 1 })} prefetch={false}>{department}</Link></li>}
         <li aria-current="page">{course.courseCode}</li>
       </ol></nav>
       <header className={styles.courseHeading}><span className={styles.courseCode}>{course.courseCode}</span><h1>{course.title}</h1></header>
-      <CourseDescription key={course.courseCode} description={course.description} sourceUrl={course.sourceUrl} />
-      <VolunteerList key={course.courseCode} volunteers={volunteers} courseCode={course.courseCode} />
+      <CourseDescription description={course.description} sourceUrl={course.sourceUrl} />
+      <VolunteerList volunteers={volunteers} courseCode={course.courseCode} />
     </article>
   );
 }
