@@ -50,22 +50,6 @@ principals with access to the runtime configuration can still access it. For
 runtime-only secret retrieval and independent rotation, use AWS Secrets Manager
 with application-side retrieval instead.
 
-### CloudFront forwarding for the custom domain
-
-The custom-domain distribution's default behavior uses the managed
-`CachingDisabled` cache policy and the managed `AllViewerExceptHostHeader`
-origin request policy (`b689b0a8-53d0-40ab-baf2-68738e2966ac`). The origin
-request policy forwards query strings, cookies, and Next.js navigation headers
-while using the Lambda Web Function's origin hostname.
-
-Disabling caching alone does not forward query strings. Without the origin
-request policy, production search and pagination reach the app without their
-`q`, `department`, or `page` parameters, and the response can reset search to
-unfiltered browsing. Keep this policy on the default behavior when changing the
-custom-domain configuration.
-
-See [AWS's managed origin request policy reference](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policy-all-viewer-except-host-header).
-
 ## Project structure
 
 The application is a modular monolith: one deployable Next.js application with
