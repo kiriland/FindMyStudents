@@ -1,32 +1,16 @@
-import { connection } from "next/server";
-import { getClasses } from "@/features/dashboard/classes-service";
+import { Suspense } from "react";
 import ClassSearch from "./ClassSearch";
-
-async function loadClasses() {
-  await connection();
-
-  let classes;
-  try {
-    classes = await getClasses();
-  } catch (error) {
-    console.error("Could not load classes:", error instanceof Error ? error.name : "UnknownError");
-    return null;
-  }
-
-  return classes;
-}
+import styles from "../discovery.module.css";
 
 export default function Dashboard() {
   return (
-    <section className="mx-auto w-full max-w-4xl px-6 py-12">
-      <header className="mb-8">
-        <p className="text-sm font-semibold">FindMyStudents</p>
-        <h1 className="mt-2 text-3xl font-bold">Baruch classes</h1>
-        <p className="mt-3 text-zinc-600 dark:text-zinc-300">
-          Search for courses from Baruch College.
-        </p>
+    <main className={styles.discovery}>
+      <header className={styles.heading}>
+        <p className={styles.eyebrow}>Baruch College</p>
+        <h1>Find your course.</h1>
+        <p>Explore courses and find students offering to help.</p>
       </header>
-      <ClassSearch classesPromise={loadClasses()} />
-    </section>
+      <Suspense fallback={<p role="status">Loading course search…</p>}><ClassSearch /></Suspense>
+    </main>
   );
 }
