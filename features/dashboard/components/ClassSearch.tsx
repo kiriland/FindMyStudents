@@ -64,8 +64,9 @@ export default function ClassSearch() {
         setLoading(false);
         const normalized = queryString(data.query);
         if (normalized !== key) {
-          if (pathname === "/dashboard") navigate(data.query, true);
-          else window.history.replaceState(null, "", `${pathname}${normalized ? `?${normalized}` : ""}`);
+          const currentPath = window.location.pathname;
+          if (currentPath === "/dashboard") navigate(data.query, true);
+          else window.history.replaceState(null, "", `${currentPath}${normalized ? `?${normalized}` : ""}`);
         }
       })
       .catch(() => {
@@ -74,7 +75,7 @@ export default function ClassSearch() {
         setLoading(false);
       });
     return () => controller.abort();
-  }, [key, pathname, retry]);
+  }, [key, retry]);
 
   const updating = loading || search.trim() !== query.search;
   const available = result && queryString(result.query) === key && !error;
