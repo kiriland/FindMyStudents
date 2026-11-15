@@ -16,9 +16,11 @@ function navigate(query: CourseQuery, replace = false) {
 export default function ClassSearch() {
   const pathname = usePathname();
   const params = useSearchParams();
-  const [result, setResult] = useState<CoursePage | null>(null);
-  const query = pathname === "/dashboard" ? readCourseQuery(params) : result?.query ?? readCourseQuery(params);
+  const [pages, setPages] = useState<Map<string, CoursePage>>(() => new Map());
+  // Course links carry the originating query, including when reached via Back.
+  const query = readCourseQuery(params);
   const key = queryString(query);
+  const result = pages.get(key) ?? null;
   const [search, setSearch] = useState(query.search);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,9 +33,8 @@ export default function ClassSearch() {
   }, [pathname, params, key]);
 
   useEffect(() => {
-    // An intercepted course URL must not overwrite the background search.
-    if (pathname === "/dashboard") setSearch(readCourseQuery(new URLSearchParams(key)).search);
-  }, [key, pathname]);
+    setSearch(readCourseQuery(new URLSearchParams(key)).search);
+  }, [key]);
 
   useEffect(() => {
     if (pathname !== "/dashboard" || search.trim() === query.search) return;
@@ -42,7 +43,6 @@ export default function ClassSearch() {
   }, [search, query.search, query.department, pathname]);
 
   useEffect(() => {
-    if (pathname !== "/dashboard") return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -51,9 +51,22 @@ export default function ClassSearch() {
         if (!response.ok) throw new Error("Could not load courses.");
         const data: CoursePage = await response.json();
         if (controller.signal.aborted) return;
-        setResult(data);
+        setPages((previous) => {
+          const next = new Map(previous);
+          const resultKey = queryString(data.query);
+          next.delete(resultKey);
+          next.set(resultKey, data);
+          // Preserve nearby history entries without accumulating the catalogue.
+          const oldest = next.keys().next().value;
+          if (next.size > 5 && oldest !== undefined) next.delete(oldest);
+          return next;
+        });
         setLoading(false);
-        if (queryString(data.query) !== key) navigate(data.query, true);
+        const normalized = queryString(data.query);
+        if (normalized !== key) {
+          if (pathname === "/dashboard") navigate(data.query, true);
+          else window.history.replaceState(null, "", `${pathname}${normalized ? `?${normalized}` : ""}`);
+        }
       })
       .catch(() => {
         if (controller.signal.aborted) return;
@@ -106,7 +119,7 @@ export default function ClassSearch() {
         <ul className={styles.results} aria-busy={loading}>
           {result.courses.map((course) => (
             <li key={course.courseCode}>
-              <Link href={courseHref(course)} prefetch={false} scroll={false} className={styles.courseRow}>
+              <Link href={`${courseHref(course)}${key ? `?${key}` : ""}`} prefetch={false} scroll={false} className={styles.courseRow}>
                 <span className={styles.courseCode}>{course.courseCode}</span>
                 <div><h2>{course.title}</h2><p>{course.preview || "Open this course to learn more."}</p></div>
                 <span className={styles.rowAction} aria-hidden="true">View course ↗</span>
