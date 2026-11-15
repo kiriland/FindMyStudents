@@ -17,6 +17,7 @@ export default function ClassSearch() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [pages, setPages] = useState<Map<string, CoursePage>>(() => new Map());
+  const [departments, setDepartments] = useState<string[]>([]);
   // Course links carry the originating query, including when reached via Back.
   const query = readCourseQuery(params);
   const key = queryString(query);
@@ -51,6 +52,7 @@ export default function ClassSearch() {
         if (!response.ok) throw new Error("Could not load courses.");
         const data: CoursePage = await response.json();
         if (controller.signal.aborted) return;
+        setDepartments(data.departments);
         setPages((previous) => {
           const next = new Map(previous);
           const resultKey = queryString(data.query);
@@ -98,8 +100,8 @@ export default function ClassSearch() {
           <label htmlFor="department">Department</label>
           <select id="department" value={query.department} onChange={(event) => navigate({ search: search.trim(), department: event.target.value, page: 1 })}>
             <option value="">All departments</option>
-            {query.department && !result?.departments.includes(query.department) && <option value={query.department}>{query.department}</option>}
-            {result?.departments.map((department) => <option key={department} value={department}>{department}</option>)}
+            {query.department && !departments.includes(query.department) && <option value={query.department}>{query.department}</option>}
+            {departments.map((department) => <option key={department} value={department}>{department}</option>)}
           </select>
         </div>
         {(search || query.department) && <button className={styles.textButton} onClick={clearFilters} type="button">Clear filters</button>}
