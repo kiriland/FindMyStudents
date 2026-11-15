@@ -33,9 +33,9 @@ export default function LoginForm() {
       if (isSignedIn && nextStep.signInStep === "DONE") {
         router.push("/");
       }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
         setError("Something went wrong. Please try again.");
       }

@@ -10,6 +10,7 @@ export default function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const router = useRouter();
 
@@ -37,7 +38,11 @@ export default function SignupForm() {
         router.push("/confirm-signup");
       }
     } catch (error) {
-      console.error("Sign-up error:", error);
+      if (error instanceof Error) {
+        setError(error.message)
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     }
   }
 
@@ -57,6 +62,7 @@ export default function SignupForm() {
         onChange={handlePasswordChange}
       />
       <Button type="submit">Sign Up</Button>
+      {error && <p>{error}</p>}
     </form>
   )
 }
