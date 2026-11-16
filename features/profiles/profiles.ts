@@ -65,6 +65,11 @@ function helpOfferKey(studentId: string, courseKey: string) {
   return { pk: `STUDENT#${studentId}`, sk: `${HELP_OFFER_PREFIX}${courseKey}` };
 }
 
+/** Groups a Course's Help Offers, for its Volunteers newest first. */
+function courseVolunteersKey(courseKey: string) {
+  return `COURSE#${SCHOOL.slug}#${courseKey}`;
+}
+
 function firstLetter(name: string) {
   return Array.from(name)[0]?.toUpperCase() ?? "";
 }
@@ -212,8 +217,7 @@ export async function addHelpOffer(viewer: Viewer, courseCode: string): Promise<
               school: course.school,
               courseCode: course.courseCode,
               courseTitle: course.title,
-              // For the Course's Volunteers, newest Help Offer first.
-              courseKey: `COURSE#${SCHOOL.slug}#${courseKey}`,
+              courseKey: courseVolunteersKey(courseKey),
               createdAt: new Date().toISOString(),
             },
             ConditionExpression: "attribute_not_exists(pk)",

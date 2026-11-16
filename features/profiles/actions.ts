@@ -13,7 +13,7 @@ export type ProfileFormState =
 /** The outcome of adding or removing a Help Offer: done, or a message to show. */
 export type HelpOfferState = { ok: true } | { ok: false; message: string };
 
-const SESSION_ENDED = "Your session has ended. Log in again to save.";
+const SESSION_ENDED = "Your session has ended. Log in again to make changes.";
 
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
