@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
-import { getProfile, getViewer } from "../profiles";
+import { getProfile, getViewer, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-href";
+import OwnProfile from "./OwnProfile";
 import styles from "../profile.module.css";
 
 export type ProfileParams = Promise<{ id: string }>;
@@ -18,6 +19,19 @@ export default async function ProfileContent({ params }: { params: ProfileParams
         <span className={styles.avatar} aria-hidden="true">{profile.initials}</span>
         <h1 id="profile-name" className={styles.name}>{profile.displayName}</h1>
       </header>
+      {profile.isOwner ? (
+        <OwnProfile bio={profile.bio}><ProfileDetails profile={profile} /></OwnProfile>
+      ) : (
+        <ProfileDetails profile={profile} />
+      )}
     </article>
   );
+}
+
+function ProfileDetails({ profile }: { profile: ProfileView }) {
+  if (profile.bio) {
+    // Rendered as text, so markup and links in a bio stay inert.
+    return <p className={styles.bio}>{profile.bio}</p>;
+  }
+  return profile.isOwner ? <p className={styles.status}>You haven’t written a bio yet.</p> : null;
 }

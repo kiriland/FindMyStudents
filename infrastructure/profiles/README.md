@@ -45,7 +45,7 @@ The pool and the table have deletion protection turned on.
 ### 2. Let the app read and write the table
 
 The Web Function's execution role, `AWS_LAMBDA_EXECUTION_ROLE_ARN`, needs
-`dynamodb:GetItem` and `dynamodb:PutItem` on the `profiles_table_arn` output.
+`dynamodb:GetItem`, `dynamodb:PutItem` and `dynamodb:UpdateItem` on the `profiles_table_arn` output.
 Add these as an inline policy on that role. Later Terraform will manage this
 policy.
 
