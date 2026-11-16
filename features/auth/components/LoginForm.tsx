@@ -1,9 +1,16 @@
 "use client";
 
+import Button from "@/components/Button";
+import { FieldLabel, Input } from "@/components/ui/FormControls";
+import AuthForm from "./AuthForm";
+
 import { useRef, useState } from "react";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { useRouter } from "next/navigation";
-import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
+import AuthChallenge, {
+  getChallengeToken,
+  type TurnstileInstance,
+} from "./AuthChallenge";
 
 export default function LoginForm() {
   const challenge = useRef<TurnstileInstance>(null);
@@ -31,7 +38,11 @@ export default function LoginForm() {
     let token: string | undefined;
     try {
       token = getChallengeToken(challenge.current);
-      const { isSignedIn, nextStep } = await signInWithEmail(email, password, token);
+      const { isSignedIn, nextStep } = await signInWithEmail(
+        email,
+        password,
+        token,
+      );
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
         router.push("/");
@@ -53,11 +64,12 @@ export default function LoginForm() {
   }
 
   return (
-    <form className="flex w-full max-w-[380px] flex-col gap-4 rounded-2xl bg-white p-7.5" onSubmit={handleSignIn}>
-      <h1 className="text-center text-[30px] font-bold">Log In</h1>
-      <label className="text-base font-semibold" htmlFor="email">Email</label>
-      <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
+    <AuthForm title="Log In" onSubmit={handleSignIn}>
+      <FieldLabel variant="auth" htmlFor="email">
+        Email
+      </FieldLabel>
+      <Input
+        variant="auth"
         type="email"
         id="email"
         value={email}
@@ -65,9 +77,11 @@ export default function LoginForm() {
         required
       />
 
-      <label className="text-base font-semibold" htmlFor="password">Password</label>
-      <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
+      <FieldLabel variant="auth" htmlFor="password">
+        Password
+      </FieldLabel>
+      <Input
+        variant="auth"
         type="password"
         id="password"
         value={password}
@@ -76,8 +90,10 @@ export default function LoginForm() {
       />
 
       <AuthChallenge ref={challenge} action="login" />
-      <button className="cursor-pointer rounded-lg bg-[#a9a9a9] px-4 py-3 font-semibold text-white hover:bg-[#808080]" type="submit">Log In</button>
+      <Button variant="auth" type="submit">
+        Log In
+      </Button>
       {error && <p role="alert">{error}</p>}
-    </form>
+    </AuthForm>
   );
 }
