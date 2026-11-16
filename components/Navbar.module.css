@@ -78,3 +78,65 @@
     grid-column: 1;
   }
 }
+
+.menuRoot {
+  position: relative;
+  min-width: 0;
+}
+
+.navbar .menuButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 100%;
+  font-size: 0.8125rem;
+}
+
+.menuLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caret {
+  flex-shrink: 0;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  padding: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+  border-radius: 0.375rem;
+  background: var(--background);
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+.navbar .menu a,
+.navbar .menu button {
+  display: block;
+  width: 100%;
+  border-radius: 0.25rem;
+  text-align: left;
+}
+
+.navbar .menu a:hover,
+.navbar .menu button:hover,
+.navbar .menu a:focus-visible,
+.navbar .menu button:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.navbar .menu a:focus-visible,
+.navbar .menu button:focus-visible {
+  outline-offset: -2px;
+}

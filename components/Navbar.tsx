@@ -5,6 +5,8 @@ import { signOut } from "aws-amplify/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/components/AuthProvider";
+import { profileHref } from "@/features/profiles/profile-href";
+import AccountMenu from "./AccountMenu";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
@@ -28,17 +30,17 @@ export default function Navbar() {
       <div className={styles.pages}>
         <Link href="/">Home</Link>
         <Link href="/dashboard">Dashboard</Link>
+        {account && <Link href={profileHref(account.userId)}>Profile</Link>}
       </div>
       <div className={styles.account}>
         {isLoading ? (
           <span role="status" className={styles.welcome}>Loading account...</span>
         ) : account ? (
-          <>
-            <span className={styles.welcome} title={account.email ?? undefined}>
-              {account.email ? `Welcome, ${account.email}` : "Signed in"}
-            </span>
-            <button type="button" onClick={handleLogout}>Logout</button>
-          </>
+          <AccountMenu
+            email={account.email}
+            profileHref={profileHref(account.userId)}
+            onLogout={handleLogout}
+          />
         ) : (
           <>
             <Link href="/login">Login</Link>
