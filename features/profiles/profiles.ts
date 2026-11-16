@@ -48,7 +48,7 @@ export type VolunteerCard = {
  * only how many there are, never who they are.
  */
 export type CourseVolunteers =
-  | { visibility: "cards"; volunteers: VolunteerCard[] }
+  | { visibility: "cards"; cards: VolunteerCard[] }
   | { visibility: "count"; count: number };
 
 /** The fields of the edit-mode form. */
@@ -110,6 +110,12 @@ function shownName(givenName: string, familyName: string) {
   };
 }
 
+/** What every viewer may see of a Profile item, or null when it has no name. */
+function shownProfile(item: Record<string, unknown> | undefined) {
+  if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return null;
+  return { ...shownName(item.givenName, item.familyName), bio: typeof item.bio === "string" ? item.bio : "" };
+}
+
 async function ensureProfile(student: SignedInStudent) {
   if (knownProfiles.has(student.id)) return;
   if (!student.givenName || !student.familyName) return;
@@ -162,7 +168,8 @@ export async function getProfile(viewer: Viewer, studentId: string): Promise<Pro
     ConsistentRead: true,
   }));
   const item = items.find((candidate) => candidate.sk === "PROFILE");
-  if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return null;
+  const shown = shownProfile(item);
+  if (!item || !shown) return null;
   const helpOffers = items
     .filter((offer) => typeof offer.sk === "string" && offer.sk.startsWith(HELP_OFFER_PREFIX) && typeof offer.courseCode === "string")
     .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
@@ -173,8 +180,7 @@ export async function getProfile(viewer: Viewer, studentId: string): Promise<Pro
     }));
   return {
     id: studentId,
-    ...shownName(item.givenName, item.familyName),
-    bio: typeof item.bio === "string" ? item.bio : "",
+    ...shown,
     isOwner,
     helpOffers,
     contacts: isOwner
@@ -350,9 +356,9 @@ function bioExcerpt(bio: string) {
   const oneLine = bio.replace(/\s+/g, " ").trim();
   const chars = Array.from(oneLine);
   if (chars.length <= BIO_EXCERPT_LENGTH) return oneLine;
-  const cut = chars.slice(0, BIO_EXCERPT_LENGTH).join("");
+  const cut = chars.slice(0, BIO_EXCERPT_LENGTH);
   const lastSpace = cut.lastIndexOf(" ");
-  return `${(lastSpace > BIO_EXCERPT_LENGTH * 0.7 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+  return `${(lastSpace > BIO_EXCERPT_LENGTH * 0.7 ? cut.slice(0, lastSpace) : cut).join("").trimEnd()}…`;
 }
 
 /**
@@ -362,6 +368,7 @@ function bioExcerpt(bio: string) {
  */
 export async function getCourseVolunteers(viewer: Viewer | null, courseCode: string): Promise<CourseVolunteers> {
   const courseKey = courseCodeKey(courseCode);
+  if (!courseKey) return viewer ? { visibility: "cards", cards: [] } : { visibility: "count", count: 0 };
   const query: QueryCommandInput = {
     TableName: tableName(),
     IndexName: COURSE_VOLUNTEERS_INDEX,
@@ -369,23 +376,18 @@ export async function getCourseVolunteers(viewer: Viewer | null, courseCode: str
     ExpressionAttributeValues: { ":courseKey": courseVolunteersKey(courseKey) },
   };
   if (!viewer) {
-    const { count } = courseKey ? await queryAll({ ...query, Select: "COUNT" }) : { count: 0 };
+    const { count } = await queryAll({ ...query, Select: "COUNT" });
     return { visibility: "count", count };
   }
-  if (!courseKey) return { visibility: "cards", volunteers: [] };
   const { items: offers } = await queryAll({ ...query, ProjectionExpression: "studentId", ScanIndexForward: false });
   // A student has one Help Offer per Course, so the IDs are already unique.
   const studentIds = offers.flatMap((offer) => typeof offer.studentId === "string" ? [offer.studentId] : []);
   const profiles = await getProfileItems(studentIds);
-  const volunteers = studentIds.flatMap((studentId) => {
-    const item = profiles.get(studentId);
-    if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return [];
-    return [{
-      id: studentId,
-      ...shownName(item.givenName, item.familyName),
-      bioExcerpt: typeof item.bio === "string" ? bioExcerpt(item.bio) : "",
-      href: profileHref(studentId),
-    }];
+  const cards = studentIds.flatMap((studentId) => {
+    const shown = shownProfile(profiles.get(studentId));
+    if (!shown) return [];
+    const { bio, ...name } = shown;
+    return [{ id: studentId, ...name, bioExcerpt: bioExcerpt(bio), href: profileHref(studentId) }];
   });
-  return { visibility: "cards", volunteers };
+  return { visibility: "cards", cards };
 }
