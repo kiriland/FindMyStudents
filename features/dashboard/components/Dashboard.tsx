@@ -1,28 +1,7 @@
-
 import Image from "next/image";
 import Link from "next/link";
-import { connection } from "next/server";
-import { getClasses } from "@/features/dashboard/classes-service";
-import ClassSearch from "./ClassSearch";
-
-async function loadClasses() {
-  await connection();
-
-  let classes;
-
-  try {
-    classes = await getClasses();
-  } catch (error) {
-    console.error(
-      "Could not load classes:",
-      error instanceof Error ? error.name : "UnknownError"
-    );
-
-    return null;
-  }
-
-  return classes;
-}
+import { Suspense } from "react";
+import CourseSearch from "./CourseSearch";
 
 export default function Dashboard() {
   return (
@@ -181,8 +160,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* EXISTING AWS-POWERED CLASS SEARCH */}
-        <ClassSearch classesPromise={loadClasses()} />
+        {/* COURSE SEARCH */}
+        <Suspense fallback={<p role="status">Loading course search…</p>}>
+          <CourseSearch />
+        </Suspense>
 
       </section>
 
