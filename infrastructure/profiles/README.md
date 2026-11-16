@@ -5,7 +5,8 @@ Terraform for student Profiles:
 - a new Cognito user pool. Email is the username and must be verified. First
   name (`given_name`) and last name (`family_name`) are required.
 - the public web app client that Amplify uses in the browser
-- the `findmystudents-profiles` DynamoDB table, with one item per Profile
+- the `findmystudents-profiles` DynamoDB table, with one item per Profile and
+  one item per Help Offer in the student's partition
 
 Cognito can't add required attributes to an existing pool, which is why the pool
 is new. Accounts in the old pool aren't migrated, so students sign up again.
@@ -45,7 +46,9 @@ The pool and the table have deletion protection turned on.
 ### 2. Let the app read and write the table
 
 The Web Function's execution role, `AWS_LAMBDA_EXECUTION_ROLE_ARN`, needs
-`dynamodb:GetItem`, `dynamodb:PutItem` and `dynamodb:UpdateItem` on the `profiles_table_arn` output.
+`dynamodb:Query`, `dynamodb:PutItem`, `dynamodb:UpdateItem` and
+`dynamodb:DeleteItem` on the `profiles_table_arn` output. Adding and removing
+Help Offers runs these inside `TransactWriteItems`, which needs no extra action.
 Add these as an inline policy on that role. Later Terraform will manage this
 policy.
 

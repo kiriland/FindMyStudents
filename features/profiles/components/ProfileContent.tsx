@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
 import { getProfile, getViewer, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-href";
+import ContactDetails from "./ContactDetails";
+import HelpOfferEditor from "./HelpOfferEditor";
+import HelpOffers from "./HelpOffers";
 import OwnProfile from "./OwnProfile";
 import styles from "../profile.module.css";
 
@@ -19,10 +22,20 @@ export default async function ProfileContent({ params }: { params: ProfileParams
         <span className={styles.avatar} aria-hidden="true">{profile.initials}</span>
         <h1 id="profile-name" className={styles.name}>{profile.displayName}</h1>
       </header>
-      {profile.isOwner ? (
-        <OwnProfile bio={profile.bio}><ProfileDetails profile={profile} /></OwnProfile>
+      {profile.isOwner && profile.contacts ? (
+        <>
+          <OwnProfile bio={profile.bio} contacts={profile.contacts}>
+            <ProfileDetails profile={profile} />
+            <ContactDetails contacts={profile.contacts} />
+          </OwnProfile>
+          {/* Always editable, outside edit mode: it's what students change most. */}
+          <HelpOfferEditor offers={profile.helpOffers} />
+        </>
       ) : (
-        <ProfileDetails profile={profile} />
+        <>
+          <ProfileDetails profile={profile} />
+          <HelpOffers offers={profile.helpOffers} />
+        </>
       )}
     </article>
   );

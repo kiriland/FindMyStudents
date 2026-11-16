@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveProfile, type ProfileFormState } from "../actions";
-import { BIO_MAX_LENGTH, bioLength } from "../profile-fields";
+import { BIO_MAX_LENGTH, bioLength, type ContactField, type Contacts } from "../profile-fields";
 import styles from "../profile.module.css";
 
 type OwnProfileProps = {
   bio: string;
+  contacts: Contacts;
   /** The read-only Profile, shown outside edit mode. */
   children: React.ReactNode;
 };
@@ -15,7 +16,7 @@ type OwnProfileProps = {
  * The owner's view of their Profile: read-only until they choose Edit profile,
  * then a form for the fields they can change.
  */
-export default function OwnProfile({ bio, children }: OwnProfileProps) {
+export default function OwnProfile({ bio, contacts, children }: OwnProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
   // Only move focus back after leaving edit mode, not on the first render.
@@ -33,7 +34,7 @@ export default function OwnProfile({ bio, children }: OwnProfileProps) {
     setIsEditing(false);
   }
 
-  if (isEditing) return <ProfileForm bio={bio} onDone={leaveEditMode} />;
+  if (isEditing) return <ProfileForm bio={bio} contacts={contacts} onDone={leaveEditMode} />;
 
   return (
     <>
@@ -50,16 +51,30 @@ export default function OwnProfile({ bio, children }: OwnProfileProps) {
   );
 }
 
-function ProfileForm({ bio: savedBio, onDone }: { bio: string; onDone: () => void }) {
+const CONTACT_INPUTS: { field: ContactField; label: string; hint: string; type: string; autoComplete: string; placeholder: string }[] = [
+  { field: "phone", label: "Phone", hint: "Digits, +, spaces, - and ( ).", type: "tel", autoComplete: "tel", placeholder: "+1 (212) 555-0123" },
+  { field: "discord", label: "Discord username", hint: "2–32 lowercase letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "username" },
+  { field: "instagram", label: "Instagram handle", hint: "Up to 30 letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "handle" },
+];
+
+type FormProps = { bio: string; contacts: Contacts; onDone: () => void };
+
+function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
   const [bio, setBio] = useState(savedBio);
+  // Controlled, so a rejected save keeps what the student typed.
+  const [contactValues, setContactValues] = useState<Record<ContactField, string>>({
+    phone: contacts.phone ?? "",
+    discord: contacts.discord ?? "",
+    instagram: contacts.instagram ?? "",
+  });
   const [state, formAction, isSaving] = useActionState<ProfileFormState, FormData>(saveProfile, { status: "idle" });
 
   // Leave edit mode once the save has committed, together with the refreshed
-  // Profile, so the old bio never flashes back.
+  // Profile, so the old values never flash back.
   useEffect(() => {
     if (state.status === "saved") onDone();
   }, [state, onDone]);
-  const bioError = state.status === "invalid" ? state.fieldErrors.bio : undefined;
+  const fieldErrors = state.status === "invalid" ? state.fieldErrors : {};
   const length = bioLength(bio);
 
   return (
@@ -75,8 +90,8 @@ function ProfileForm({ bio: savedBio, onDone }: { bio: string; onDone: () => voi
           rows={8}
           value={bio}
           autoFocus
-          aria-invalid={bioError ? true : undefined}
-          aria-describedby={`profile-bio-hint profile-bio-count${bioError ? " profile-bio-error" : ""}`}
+          aria-invalid={fieldErrors.bio ? true : undefined}
+          aria-describedby={`profile-bio-hint profile-bio-count${fieldErrors.bio ? " profile-bio-error" : ""}`}
           onChange={(event) => setBio(event.target.value)}
         />
         <p
@@ -85,8 +100,36 @@ function ProfileForm({ bio: savedBio, onDone }: { bio: string; onDone: () => voi
         >
           {length} / {BIO_MAX_LENGTH}
         </p>
-        {bioError && <p id="profile-bio-error" role="alert" className={styles.fieldError}>{bioError}</p>}
+        {fieldErrors.bio && <p id="profile-bio-error" role="alert" className={styles.fieldError}>{fieldErrors.bio}</p>}
       </div>
+
+      <fieldset className={styles.contactFields}>
+        <legend>Contact details</legend>
+        <p className={styles.hint}>
+          Optional. <span className={styles.private}>Only visible to you</span> for now.
+        </p>
+        {CONTACT_INPUTS.map(({ field, label, hint, ...input }) => {
+          const error = fieldErrors[field];
+          return (
+            <div key={field} className={styles.field}>
+              <label htmlFor={`profile-${field}`}>{label}</label>
+              <p id={`profile-${field}-hint`} className={styles.hint}>{hint}</p>
+              <input
+                id={`profile-${field}`}
+                name={field}
+                {...input}
+                maxLength={64}
+                value={contactValues[field]}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={`profile-${field}-hint${error ? ` profile-${field}-error` : ""}`}
+                onChange={(event) => setContactValues((values) => ({ ...values, [field]: event.target.value }))}
+              />
+              {error && <p id={`profile-${field}-error`} role="alert" className={styles.fieldError}>{error}</p>}
+            </div>
+          );
+        })}
+      </fieldset>
+
       {state.status === "failed" && <p role="alert" className={styles.fieldError}>{state.message}</p>}
       <div className={styles.actions}>
         <button type="submit" className={`${styles.button} ${styles.primary}`} disabled={isSaving}>
