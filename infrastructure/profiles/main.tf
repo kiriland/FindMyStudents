@@ -87,8 +87,8 @@ resource "aws_cognito_user_pool_client" "web" {
   write_attributes = ["email", "given_name", "family_name"]
 }
 
-# One item per Profile (pk = STUDENT#<id>, sk = PROFILE). Help Offers share the
-# partition in later work.
+# One item per Profile (pk = STUDENT#<id>, sk = PROFILE) and one per Help Offer
+# in the same partition (sk = OFFER#<course key>).
 resource "aws_dynamodb_table" "profiles" {
   name                        = var.name
   billing_mode                = "PAY_PER_REQUEST"
@@ -104,6 +104,35 @@ resource "aws_dynamodb_table" "profiles" {
   attribute {
     name = "sk"
     type = "S"
+  }
+
+  attribute {
+    name = "courseKey"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  # A Course's Volunteers, newest Help Offer first. Only Help Offer items carry
+  # courseKey, so Profiles stay out of the index. Names and bios are read from
+  # the Profile items, so a bio edit never has to touch every offer.
+  global_secondary_index {
+    name               = "course-volunteers"
+    projection_type    = "INCLUDE"
+    non_key_attributes = ["studentId"]
+
+    key_schema {
+      attribute_name = "courseKey"
+      key_type       = "HASH"
+    }
+
+    key_schema {
+      attribute_name = "createdAt"
+      key_type       = "RANGE"
+    }
   }
 
   point_in_time_recovery {

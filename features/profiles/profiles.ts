@@ -1,11 +1,12 @@
 import "server-only";
 import { cache } from "react";
 import { ConditionalCheckFailedException, TransactionCanceledException } from "@aws-sdk/client-dynamodb";
-import { PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { BatchGetCommand, type BatchGetCommandOutput, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import { db } from "@/lib/dynamodb";
 import { getSignedInStudent, type SignedInStudent } from "@/features/auth/server-session";
 import { getCourse } from "@/features/dashboard/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/dashboard/course-model";
+import { profileHref } from "./profile-href";
 import { CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
 
 /**
@@ -31,6 +32,24 @@ export type ProfileView = {
 
 /** A Help Offer as shown on a Profile: the Course it is for. */
 export type HelpOfferView = { courseCode: string; title: string; href: string };
+
+/** A Volunteer as a signed-in student sees them on a course page. */
+export type VolunteerCard = {
+  id: string;
+  displayName: string;
+  initials: string;
+  /** The start of the bio on one line, at most BIO_EXCERPT_LENGTH characters plus "…". */
+  bioExcerpt: string;
+  href: string;
+};
+
+/**
+ * A Course's Volunteers as one viewer may see them. Signed-out visitors get
+ * only how many there are, never who they are.
+ */
+export type CourseVolunteers =
+  | { visibility: "cards"; volunteers: VolunteerCard[] }
+  | { visibility: "count"; count: number };
 
 /** The fields of the edit-mode form. */
 export type ProfileEdit = { bio: string } & Record<ContactField, string>;
@@ -69,6 +88,14 @@ function helpOfferKey(studentId: string, courseKey: string) {
 function courseVolunteersKey(courseKey: string) {
   return `COURSE#${SCHOOL.slug}#${courseKey}`;
 }
+
+/** The index of Help Offers by `courseVolunteersKey`, sorted by `createdAt`. */
+const COURSE_VOLUNTEERS_INDEX = "course-volunteers";
+
+const BIO_EXCERPT_LENGTH = 140;
+// DynamoDB reads at most this many items in one BatchGetItem.
+const BATCH_GET_LIMIT = 100;
+const BATCH_GET_ATTEMPTS = 5;
 
 function firstLetter(name: string) {
   return Array.from(name)[0]?.toUpperCase() ?? "";
@@ -276,4 +303,89 @@ export async function removeHelpOffer(viewer: Viewer, courseCode: string): Promi
     if (conditionFailed(error, 0)) return;
     throw error;
   }
+}
+
+/** Every page of a query, so a long list is never cut off at DynamoDB's 1 MB page. */
+async function queryAll(input: QueryCommandInput) {
+  const items: Record<string, unknown>[] = [];
+  let count = 0;
+  let startKey: QueryCommandInput["ExclusiveStartKey"];
+  do {
+    const page = await db.send(new QueryCommand({ ...input, ExclusiveStartKey: startKey }));
+    items.push(...(page.Items ?? []));
+    count += page.Count ?? 0;
+    startKey = page.LastEvaluatedKey;
+  } while (startKey);
+  return { items, count };
+}
+
+/** The Profile items of these students, keyed by student ID. Missing Profiles are left out. */
+async function getProfileItems(studentIds: string[]) {
+  const profiles = new Map<string, Record<string, unknown>>();
+  for (let start = 0; start < studentIds.length; start += BATCH_GET_LIMIT) {
+    let keys: Record<string, unknown>[] | undefined = studentIds.slice(start, start + BATCH_GET_LIMIT).map(profileKey);
+    for (let attempt = 0; keys?.length; attempt += 1) {
+      if (attempt === BATCH_GET_ATTEMPTS) throw new Error("DynamoDB kept leaving Profiles unread.");
+      if (attempt) await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+      const result: BatchGetCommandOutput = await db.send(new BatchGetCommand({
+        RequestItems: {
+          [tableName()]: {
+            Keys: keys,
+            // Contact details are never read for a course page.
+            ProjectionExpression: "studentId, givenName, familyName, bio",
+          },
+        },
+      }));
+      for (const item of result.Responses?.[tableName()] ?? []) {
+        if (typeof item.studentId === "string") profiles.set(item.studentId, item);
+      }
+      keys = result.UnprocessedKeys?.[tableName()]?.Keys;
+    }
+  }
+  return profiles;
+}
+
+/** The start of a bio on one line, cut at a word where one is near. */
+function bioExcerpt(bio: string) {
+  const oneLine = bio.replace(/\s+/g, " ").trim();
+  const chars = Array.from(oneLine);
+  if (chars.length <= BIO_EXCERPT_LENGTH) return oneLine;
+  const cut = chars.slice(0, BIO_EXCERPT_LENGTH).join("");
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > BIO_EXCERPT_LENGTH * 0.7 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+/**
+ * The Volunteers for a Course, newest Help Offer first, as `viewer` may see
+ * them. A signed-out visitor (no Viewer) gets only the count: no names, bios
+ * or pictures are read for them at all.
+ */
+export async function getCourseVolunteers(viewer: Viewer | null, courseCode: string): Promise<CourseVolunteers> {
+  const courseKey = courseCodeKey(courseCode);
+  const query: QueryCommandInput = {
+    TableName: tableName(),
+    IndexName: COURSE_VOLUNTEERS_INDEX,
+    KeyConditionExpression: "courseKey = :courseKey",
+    ExpressionAttributeValues: { ":courseKey": courseVolunteersKey(courseKey) },
+  };
+  if (!viewer) {
+    const { count } = courseKey ? await queryAll({ ...query, Select: "COUNT" }) : { count: 0 };
+    return { visibility: "count", count };
+  }
+  if (!courseKey) return { visibility: "cards", volunteers: [] };
+  const { items: offers } = await queryAll({ ...query, ProjectionExpression: "studentId", ScanIndexForward: false });
+  // A student has one Help Offer per Course, so the IDs are already unique.
+  const studentIds = offers.flatMap((offer) => typeof offer.studentId === "string" ? [offer.studentId] : []);
+  const profiles = await getProfileItems(studentIds);
+  const volunteers = studentIds.flatMap((studentId) => {
+    const item = profiles.get(studentId);
+    if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return [];
+    return [{
+      id: studentId,
+      ...shownName(item.givenName, item.familyName),
+      bioExcerpt: typeof item.bio === "string" ? bioExcerpt(item.bio) : "",
+      href: profileHref(studentId),
+    }];
+  });
+  return { visibility: "cards", volunteers };
 }

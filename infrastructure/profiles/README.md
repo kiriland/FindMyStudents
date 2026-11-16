@@ -7,6 +7,8 @@ Terraform for student Profiles:
 - the public web app client that Amplify uses in the browser
 - the `findmystudents-profiles` DynamoDB table, with one item per Profile and
   one item per Help Offer in the student's partition
+- the table's `course-volunteers` index, which lists a Course's Volunteers
+  newest Help Offer first. Only Help Offer items are in it.
 
 Cognito can't add required attributes to an existing pool, which is why the pool
 is new. Accounts in the old pool aren't migrated, so students sign up again.
@@ -40,15 +42,19 @@ terraform -chdir=infrastructure/profiles apply
 terraform -chdir=infrastructure/profiles output
 ```
 
-The plan creates the user pool, the app client and the table, and nothing else.
+The plan creates the user pool, the app client and the table with its index,
+and nothing else. On a table that already exists, the plan only adds the index;
+DynamoDB fills it from the existing Help Offers in the background.
 The pool and the table have deletion protection turned on.
 
 ### 2. Let the app read and write the table
 
 The Web Function's execution role, `AWS_LAMBDA_EXECUTION_ROLE_ARN`, needs
-`dynamodb:Query`, `dynamodb:PutItem`, `dynamodb:UpdateItem` and
-`dynamodb:DeleteItem` on the `profiles_table_arn` output. Adding and removing
-Help Offers runs these inside `TransactWriteItems`, which needs no extra action.
+`dynamodb:Query`, `dynamodb:BatchGetItem`, `dynamodb:PutItem`,
+`dynamodb:UpdateItem` and `dynamodb:DeleteItem` on the `profiles_table_arn`
+output, and `dynamodb:Query` on `<profiles_table_arn>/index/course-volunteers`
+for course pages. Adding and removing Help Offers runs these inside
+`TransactWriteItems`, which needs no extra action.
 Add these as an inline policy on that role. Later Terraform will manage this
 policy.
 
