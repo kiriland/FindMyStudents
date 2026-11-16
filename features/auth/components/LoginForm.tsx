@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { useRouter } from "next/navigation";
+import { safeReturnTo } from "@/features/auth/return-to";
 import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
 
 export default function LoginForm() {
@@ -34,7 +35,7 @@ export default function LoginForm() {
       const { isSignedIn, nextStep } = await signInWithEmail(email, password, token);
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
-        router.push("/");
+        router.push(safeReturnTo(new URLSearchParams(window.location.search).get("next")) ?? "/");
       } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
         router.push("/confirm-signup");
       } else {

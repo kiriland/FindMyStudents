@@ -3,17 +3,21 @@
 import { useState } from "react";
 import { signOut } from "aws-amplify/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const { account, isLoading, error } = useAuth();
   const [logoutError, setLogoutError] = useState("");
+  const router = useRouter();
 
   async function handleLogout() {
     setLogoutError("");
     try {
       await signOut();
+      // Re-render server pages so signed-in content leaves the screen.
+      router.refresh();
     } catch {
       setLogoutError("Unable to log out. Please try again.");
     }

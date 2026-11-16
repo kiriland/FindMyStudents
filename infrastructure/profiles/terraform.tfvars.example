@@ -1,0 +1,5 @@
+# Defaults create the profiles resources in us-east-1, next to the classes table.
+aws_region = "us-east-1"
+
+# Prefix for the user pool, app client, and profiles table names.
+# name = "findmystudents-profiles"

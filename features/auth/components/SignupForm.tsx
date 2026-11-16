@@ -9,6 +9,8 @@ export default function SignupForm() {
   const challenge = useRef<TurnstileInstance>(null);
   const submitting = useRef(false);
 
+  const [givenName, setGivenName] = useState("");
+  const [familyName, setFamilyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -26,12 +28,17 @@ export default function SignupForm() {
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting.current) return;
+    const names = { givenName: givenName.trim(), familyName: familyName.trim() };
+    if (!names.givenName || !names.familyName) {
+      setError(names.givenName ? "Enter your last name." : "Enter your first name.");
+      return;
+    }
     submitting.current = true;
     setError("");
     let token: string | undefined;
     try {
       token = getChallengeToken(challenge.current);
-      const { nextStep } = await signUpWithEmail(email, password, token);
+      const { nextStep } = await signUpWithEmail({ email, password, ...names }, token);
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
         router.push("/confirm-signup");
       } else {
@@ -48,6 +55,26 @@ export default function SignupForm() {
   return (
     <form onSubmit={handleSubmit}>
       <h1>Sign Up</h1>
+      <label htmlFor="given-name">First name</label>
+      <input
+        id="given-name"
+        type="text"
+        autoComplete="given-name"
+        maxLength={256}
+        value={givenName}
+        required
+        onChange={(e) => setGivenName(e.target.value)}
+      />
+      <label htmlFor="family-name">Last name</label>
+      <input
+        id="family-name"
+        type="text"
+        autoComplete="family-name"
+        maxLength={256}
+        value={familyName}
+        required
+        onChange={(e) => setFamilyName(e.target.value)}
+      />
       <label htmlFor="email">Email</label>
       <input
         type="email"

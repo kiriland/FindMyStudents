@@ -9,6 +9,7 @@
     "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
   },
   "dependencies": {
+    "@aws-amplify/adapter-nextjs": "^1.8.1",
     "@aws-sdk/client-dynamodb": "^3.1157.0",
     "@aws-sdk/lib-dynamodb": "^3.1157.0",
     "@marsidev/react-turnstile": "1.6.3",
