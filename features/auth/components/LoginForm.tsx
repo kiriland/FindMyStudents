@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { useRouter } from "next/navigation";
-import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to";
+import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to-browser";
 import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
 
 export default function LoginForm() {

@@ -1,6 +1,7 @@
 const PLACEHOLDER_ORIGIN = "https://return-to.invalid";
 
-function withReturnTo(path: string, returnTo: string | null) {
+/** `path` with `returnTo` as its return path, if there is one. */
+export function withReturnTo(path: string, returnTo: string | null) {
   return returnTo ? `${path}?${new URLSearchParams({ next: returnTo })}` : path;
 }
 
@@ -19,14 +20,4 @@ export function safeReturnTo(value: string | null): string | null {
   } catch {
     return null;
   }
-}
-
-/** The current page's return path, if it has a safe one. Browser only. */
-export function currentReturnTo() {
-  return safeReturnTo(new URLSearchParams(window.location.search).get("next"));
-}
-
-/** `path`, carrying the current page's return path along. Browser only. */
-export function keepReturnTo(path: string) {
-  return withReturnTo(path, currentReturnTo());
 }

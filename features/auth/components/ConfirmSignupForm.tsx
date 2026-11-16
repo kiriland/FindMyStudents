@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmEmailSignup } from "@/features/auth/auth-client";
-import { keepReturnTo } from "@/features/auth/return-to";
+import { keepReturnTo } from "@/features/auth/return-to-browser";
 
 export default function ConfirmSignupForm() {
   const [email, setEmail] = useState("");

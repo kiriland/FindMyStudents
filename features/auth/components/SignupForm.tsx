@@ -3,6 +3,7 @@
 import { signUpWithEmail } from "@/features/auth/auth-client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { keepReturnTo } from "@/features/auth/return-to-browser";
 import AuthChallenge, { getChallengeToken, type TurnstileInstance } from "./AuthChallenge";
 
 export default function SignupForm() {
@@ -40,9 +41,9 @@ export default function SignupForm() {
       token = getChallengeToken(challenge.current);
       const { nextStep } = await signUpWithEmail({ email, password, ...names }, token);
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
-        router.push("/confirm-signup");
+        router.push(keepReturnTo("/confirm-signup"));
       } else {
-        router.push("/login");
+        router.push(keepReturnTo("/login"));
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Sign-up failed. Please try again.");
