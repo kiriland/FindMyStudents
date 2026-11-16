@@ -46,20 +46,18 @@ export default function SignupForm() {
   }
 
   return (
-    <form className="flex w-full max-w-[380px] flex-col gap-4 rounded-2xl bg-white p-7.5" onSubmit={handleSubmit}>
-      <h1 className="text-center text-[30px] font-bold">Sign Up</h1>
-      <label className="text-base font-semibold" htmlFor="email">Email</label>
+    <form onSubmit={handleSubmit}>
+      <h1>Sign Up</h1>
+      <label htmlFor="email">Email</label>
       <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         type="email"
         id="email"
         value={email}
         required
         onChange={handleEmailChange}
       />
-      <label className="text-base font-semibold" htmlFor="password">Password</label>
+      <label htmlFor="password">Password</label>
       <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         id="password"
         type="password"
         value={password}
@@ -67,7 +65,7 @@ export default function SignupForm() {
         onChange={handlePasswordChange}
       />
       <AuthChallenge ref={challenge} action="signup" />
-      <button className="cursor-pointer rounded-lg bg-[#a9a9a9] px-4 py-3 font-semibold text-white hover:bg-[#808080]" type="submit">Sign Up</button>
+      <button type="submit">Sign Up</button>
       {error && <p role="alert">{error}</p>}
     </form>
   );

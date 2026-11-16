@@ -1,0 +1,51 @@
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: black;
+}
+
+.auth-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 380px;
+  padding: 30px;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.auth-page h1 {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.auth-page label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.auth-page input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd3dd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 16px;
+}
+
+.auth-page button {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: darkgray;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-page button:hover {
+  background: gray;
+}

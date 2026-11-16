@@ -38,11 +38,10 @@ export default function ConfirmSignupForm() {
   }
 
   return (
-    <form className="flex w-full max-w-[380px] flex-col gap-4 rounded-2xl bg-white p-7.5" onSubmit={handleConfirm}>
-      <h1 className="text-center text-[30px] font-bold">Confirm Sign Up</h1>
-      <label className="text-base font-semibold" htmlFor="email">Email</label>
+    <form onSubmit={handleConfirm}>
+      <h1>Confirm Sign Up</h1>
+      <label htmlFor="email">Email</label>
       <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         type="email"
         id="email"
         value={email}
@@ -50,9 +49,8 @@ export default function ConfirmSignupForm() {
         required
       />
 
-      <label className="text-base font-semibold" htmlFor="code">Verification Code</label>
+      <label htmlFor="code">Verification Code</label>
       <input
-        className="w-full rounded-lg border border-[#cbd3dd] bg-white px-3.5 py-3 text-base"
         type="text"
         id="code"
         value={code}
@@ -60,7 +58,7 @@ export default function ConfirmSignupForm() {
         required
       />
 
-      <button className="cursor-pointer rounded-lg bg-[#a9a9a9] px-4 py-3 font-semibold text-white hover:bg-[#808080]" type="submit">Verify Email</button>
+      <button type="submit">Verify Email</button>
       {error && <p>{error}</p>}
     </form>
   );
