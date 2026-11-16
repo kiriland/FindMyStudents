@@ -23,15 +23,16 @@ function remember(pages: Map<string, CoursePage>, queryKey: string, page: Course
 export function useCoursePages(queryKey: string, onNormalize: (query: CourseQuery) => void) {
   const [pages, setPages] = useState<Map<string, CoursePage>>(() => new Map());
   const [departments, setDepartments] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [settled, setSettled] = useState<{
+    queryKey: string;
+    attempt: number;
+    error: string;
+  } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const normalize = useEffectEvent(onNormalize);
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
     fetch(withQuery("/api/courses", queryKey), { signal: controller.signal, cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Could not load courses.");
@@ -40,16 +41,19 @@ export function useCoursePages(queryKey: string, onNormalize: (query: CourseQuer
         const resultKey = queryString(data.query);
         setDepartments(data.departments);
         setPages((previous) => remember(previous, resultKey, data));
-        setLoading(false);
+        setSettled({ queryKey, attempt, error: "" });
         if (resultKey !== queryKey) normalize(data.query);
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setError("Could not load courses. Please try again.");
-        setLoading(false);
+        setSettled({ queryKey, attempt, error: "Could not load courses. Please try again." });
       });
     return () => controller.abort();
   }, [queryKey, attempt]);
+
+  // A new query or retry is pending immediately, before its effect runs.
+  const loading = settled?.queryKey !== queryKey || settled?.attempt !== attempt;
+  const error = loading ? "" : settled?.error ?? "";
 
   return {
     result: pages.get(queryKey) ?? null,

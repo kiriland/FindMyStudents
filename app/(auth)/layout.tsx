@@ -10,4 +10,3 @@ export default function AuthLayout({
   );
 }
 import "./auth.css";
-

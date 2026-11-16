@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
+    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js",
+    "lint": "eslint"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1157.0",
@@ -24,6 +25,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
-    "typescript": "^6"
+    "typescript": "^6",
+    "eslint": "^10",
+    "eslint-config-next": "16.4.3",
+    "eslint-plugin-import-x": "^4.17.1"
   }
 }
