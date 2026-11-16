@@ -17,7 +17,7 @@ change the Profile.
 ## Prerequisites
 
 Terraform 1.6+, AWS CLI v2, and authenticated AWS access. The defaults create
-everything in `us-east-1`. To change the region or name prefix:
+everything in `us-east-1`. To change the region or resource names:
 
 ```bash
 cp infrastructure/profiles/terraform.tfvars.example \

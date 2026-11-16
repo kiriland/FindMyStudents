@@ -4,7 +4,7 @@ variable "aws_region" {
 }
 
 variable "name" {
-  description = "Prefix for the user pool, app client, and table names."
+  description = "Name of the user pool and table; the app client adds a -web suffix."
   type        = string
   default     = "findmystudents-profiles"
   validation {

@@ -38,10 +38,13 @@ function firstLetter(name: string) {
   return Array.from(name)[0]?.toUpperCase() ?? "";
 }
 
-/** "First L.": other students never see the full last name. */
-export function displayName(givenName: string, familyName: string) {
+/** How a student's name is shown: "First L.", never the full last name. */
+function shownName(givenName: string, familyName: string) {
   const initial = firstLetter(familyName);
-  return initial ? `${givenName} ${initial}.` : givenName;
+  return {
+    displayName: initial ? `${givenName} ${initial}.` : givenName,
+    initials: `${firstLetter(givenName)}${initial}`,
+  };
 }
 
 async function ensureProfile(student: SignedInStudent) {
@@ -92,7 +95,6 @@ export async function getProfile(_viewer: Viewer, studentId: string): Promise<Pr
   if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return null;
   return {
     id: studentId,
-    displayName: displayName(item.givenName, item.familyName),
-    initials: `${firstLetter(item.givenName)}${firstLetter(item.familyName)}`,
+    ...shownName(item.givenName, item.familyName),
   };
 }

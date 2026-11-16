@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmEmailSignup } from "@/features/auth/auth-client";
+import { keepReturnTo } from "@/features/auth/return-to";
 
 export default function ConfirmSignupForm() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ export default function ConfirmSignupForm() {
       const result = await confirmEmailSignup(email, code);
 
       if (result.isSignUpComplete) {
-        router.push("/login");
+        router.push(keepReturnTo("/login"));
       }
     } catch (error) {
       if (error instanceof Error) {
