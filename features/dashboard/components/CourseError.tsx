@@ -1,23 +1,7 @@
 "use client";
 
-import ActionGroup from "@/components/ui/ActionGroup";
-import Button, { ButtonLink } from "@/components/Button";
-import EmptyState from "@/components/ui/EmptyState";
+import Link from "next/link";
 
 export default function CourseError({ retry }: { retry: () => void }) {
-  return (
-    <EmptyState
-      role="alert"
-      heading="h1"
-      title="Could not load this course"
-      description="Please try again in a moment."
-    >
-      <ActionGroup>
-        <Button type="button" onClick={retry}>
-          Try again
-        </Button>
-        <ButtonLink href="/dashboard">Browse courses</ButtonLink>
-      </ActionGroup>
-    </EmptyState>
-  );
+  return <div className="rounded-[14px] border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600 [&_h2]:text-xl [&_h2]:font-semibold [&_p]:mt-2.5 [&_p]:mb-5.5 [&_p]:leading-[1.6] [&_p]:text-zinc-500 dark:[&_p]:text-zinc-400" role="alert"><h1>Could not load this course</h1><p>Please try again in a moment.</p><div className="mt-3 flex flex-wrap gap-5 text-[13px] [&_a]:cursor-pointer [&_a]:underline [&_a]:underline-offset-4 [&_button]:cursor-pointer [&_button]:underline [&_button]:underline-offset-4"><button className="inline-flex min-h-[42px] cursor-pointer items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 py-[9px] text-sm font-semibold text-inherit no-underline enabled:hover:bg-zinc-100 [&:is(a):hover]:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-950 dark:enabled:hover:bg-zinc-800 dark:[&:is(a):hover]:bg-zinc-800" type="button" onClick={retry}>Try again</button><Link className="inline-flex min-h-[42px] cursor-pointer items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 py-[9px] text-sm font-semibold text-inherit no-underline enabled:hover:bg-zinc-100 [&:is(a):hover]:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-950 dark:enabled:hover:bg-zinc-800 dark:[&:is(a):hover]:bg-zinc-800" href="/dashboard">Browse courses</Link></div></div>;
 }
