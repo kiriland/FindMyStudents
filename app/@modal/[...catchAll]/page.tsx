@@ -1,1 +1,1 @@
-export default function DismissModal() { return null; }
+export { default } from "../default";

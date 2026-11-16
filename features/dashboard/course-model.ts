@@ -1,8 +1,12 @@
 export const SCHOOL = { name: "Baruch College", slug: "baruch" };
 export const PAGE_SIZE = 20;
+export const DISCOVERY_PATH = "/dashboard";
+// The course view's main heading; the course modal uses it as its accessible name.
+export const COURSE_HEADING_ID = "course-heading";
 
 export type Course = { school: string; courseCode: string; title: string; description: string; sourceUrl: string };
 export type CourseQuery = { search: string; department: string; page: number };
+export const EMPTY_QUERY: CourseQuery = { search: "", department: "", page: 1 };
 export type CourseSummary = Pick<Course, "school" | "courseCode" | "title"> & { preview: string };
 export type CoursePage = {
   courses: CourseSummary[];
@@ -35,9 +39,12 @@ export function queryString(query: CourseQuery) {
   return params.toString();
 }
 
-export function discoveryHref(query: CourseQuery = { search: "", department: "", page: 1 }) {
-  const params = queryString(query);
-  return `/dashboard${params ? `?${params}` : ""}`;
+export function withQuery(path: string, params: string) {
+  return params ? `${path}?${params}` : path;
+}
+
+export function discoveryHref(query: CourseQuery = EMPTY_QUERY) {
+  return withQuery(DISCOVERY_PATH, queryString(query));
 }
 
 export function courseCodeKey(code: string) {

@@ -6,8 +6,9 @@ import styles from "../discovery.module.css";
 let openDialogs = 0;
 let previousOverflow = "";
 
-export default function Dialog({ title, onDismiss, children }: {
-  title: string; onDismiss: () => void; children: React.ReactNode;
+export default function Dialog({ title, labelledBy, onDismiss, children }: {
+  /** Shown in the dialog bar; also the accessible name unless `labelledBy` resolves. */
+  title: string; labelledBy?: string; onDismiss: () => void; children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -28,7 +29,7 @@ export default function Dialog({ title, onDismiss, children }: {
   }, []);
 
   return (
-    <dialog ref={ref} className={styles.dialog} aria-label={title}
+    <dialog ref={ref} className={styles.dialog} aria-label={title} aria-labelledby={labelledBy}
       onCancel={(event) => {
         event.preventDefault();
         event.stopPropagation();

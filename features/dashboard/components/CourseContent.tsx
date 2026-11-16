@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
-import { getCourse } from "../classes-service";
-import { discoveryHref, getDepartment } from "../course-model";
+import { getCourse } from "../course-catalogue";
+import { COURSE_HEADING_ID, discoveryHref, EMPTY_QUERY, getDepartment } from "../course-model";
 import { getVolunteers } from "../volunteers";
 import CourseDescription from "./CourseDescription";
 import VolunteerList from "./VolunteerList";
@@ -21,10 +21,10 @@ export default async function CourseContent({ params }: { params: CourseParams }
     <article key={`${course.school}:${course.courseCode}`}>
       <nav aria-label="Breadcrumb"><ol className={styles.breadcrumbs}>
         <li><Link href={discoveryHref()} prefetch={false}>Courses</Link></li>
-        {department && <li><Link href={discoveryHref({ search: "", department, page: 1 })} prefetch={false}>{department}</Link></li>}
+        {department && <li><Link href={discoveryHref({ ...EMPTY_QUERY, department })} prefetch={false}>{department}</Link></li>}
         <li aria-current="page">{course.courseCode}</li>
       </ol></nav>
-      <header className={styles.courseHeading}><span className={styles.courseCode}>{course.courseCode}</span><h1>{course.title}</h1></header>
+      <header className={styles.courseHeading}><span className={styles.courseCode}>{course.courseCode}</span><h1 id={COURSE_HEADING_ID}>{course.title}</h1></header>
       <CourseDescription description={course.description} sourceUrl={course.sourceUrl} />
       <VolunteerList volunteers={volunteers} courseCode={course.courseCode} />
     </article>

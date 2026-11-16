@@ -51,6 +51,8 @@
 .volunteerCard:hover { background: #fafafa; border-color: #a5b4fc; }
 .avatar { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; background: #eef2ff; color: #4338ca; font-size: 14px; font-weight: 700; }
 .volunteerName { font-weight: 650; display: block; margin-bottom: 5px; }
+.cardHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 5px; }
+.cardHeading .volunteerName { margin-bottom: 0; }
 .volunteerBio { color: #71717a; font-size: 14px; line-height: 1.6; display: block; }
 .helpNote { color: #4338ca; font-size: 13px; line-height: 1.6; display: block; margin-top: 10px; }
 .previewLink { font-size: 12px; font-weight: 600; display: block; margin-top: 12px; }

@@ -23,15 +23,21 @@ async function readCatalogue(): Promise<Course[]> {
     ProjectionExpression: "#school, #code, #title, #description, #source",
   })) {
     for (const item of page.Items ?? []) {
-      if (item.school !== SCHOOL.name || typeof item.courseCode !== "string" || typeof item.title !== "string"
-        || typeof item.description !== "string" || typeof item.sourceUrl !== "string") continue;
-      courses.push({ school: item.school, courseCode: item.courseCode, title: item.title || item.courseCode, description: item.description, sourceUrl: item.sourceUrl });
+      // Only the course code identifies a course; keep rows whose optional fields are missing.
+      if (item.school !== SCHOOL.name || typeof item.courseCode !== "string" || !item.courseCode.trim()) continue;
+      courses.push({
+        school: item.school,
+        courseCode: item.courseCode,
+        title: typeof item.title === "string" && item.title ? item.title : item.courseCode,
+        description: typeof item.description === "string" ? item.description : "",
+        sourceUrl: typeof item.sourceUrl === "string" ? item.sourceUrl : "",
+      });
     }
   }
   return courses;
 }
 
-export async function getClasses(): Promise<Course[]> {
+export async function getCatalogue(): Promise<Course[]> {
   // Hard runtime-local expiry: await fresh data instead of serving stale rows.
   if (catalogue && Date.now() < catalogue.expiresAt) return catalogue.courses;
   if (!loading) {
@@ -49,7 +55,7 @@ function normalize(text: string) {
 }
 
 export async function findCourses(query: CourseQuery): Promise<CoursePage> {
-  const courses = await getClasses();
+  const courses = await getCatalogue();
   const departments = [...new Set(courses.map((course) => getDepartment(course.courseCode)))].filter(Boolean).sort();
   const subjects = new Set(departments.map((department) => department.toLowerCase()));
   const text = normalize(query.search);
@@ -87,8 +93,8 @@ export async function findCourses(query: CourseQuery): Promise<CoursePage> {
   };
 }
 
-export async function getCourse(school: string, code: string) {
-  if (school !== SCHOOL.slug) return null;
+export async function getCourse(schoolSlug: string, code: string) {
+  if (schoolSlug !== SCHOOL.slug) return null;
   // Older links contain encoded spaces; route params can retain their encoding.
   let decoded = code;
   try {
@@ -101,5 +107,5 @@ export async function getCourse(school: string, code: string) {
   if (decoded.includes("%")) return null;
   const key = courseCodeKey(decoded);
   if (!key) return null;
-  return (await getClasses()).find((course) => courseCodeKey(course.courseCode) === key) ?? null;
+  return (await getCatalogue()).find((course) => courseCodeKey(course.courseCode) === key) ?? null;
 }

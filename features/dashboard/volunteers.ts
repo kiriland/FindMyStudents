@@ -29,17 +29,17 @@ const profiles = {
   },
 };
 
-const assignments: Record<string, { person: keyof typeof profiles; help: string }[]> = {
+const assignments: Record<string, { profileId: keyof typeof profiles; help: string }[]> = {
   CIS3400: [
-    { person: "maya", help: "SQL queries, joins, and translating an ER diagram into a relational schema." },
-    { person: "jordan", help: "Database normalization and working through database-design practice problems." },
+    { profileId: "maya", help: "SQL queries, joins, and translating an ER diagram into a relational schema." },
+    { profileId: "jordan", help: "Database normalization and working through database-design practice problems." },
   ],
   CIS4160: [
-    { person: "sam", help: "JavaScript fundamentals, web application structure, and understanding request/response flows." },
-    { person: "maya", help: "Connecting a web application to a database and explaining SQL-backed features." },
+    { profileId: "sam", help: "JavaScript fundamentals, web application structure, and understanding request/response flows." },
+    { profileId: "maya", help: "Connecting a web application to a database and explaining SQL-backed features." },
   ],
   MTH2003: [
-    { person: "jordan", help: "Algebra fundamentals and breaking practice problems into manageable steps." },
+    { profileId: "jordan", help: "Algebra fundamentals and breaking practice problems into manageable steps." },
   ],
 };
 
@@ -47,5 +47,5 @@ const assignments: Record<string, { person: keyof typeof profiles; help: string 
 export async function getVolunteers(course: Pick<Course, "school" | "courseCode">): Promise<Volunteer[]> {
   if (course.school !== SCHOOL.name) return [];
   const code = courseCodeKey(course.courseCode);
-  return (assignments[code] ?? []).map(({ person, help }) => ({ ...profiles[person], help }));
+  return (assignments[code] ?? []).map(({ profileId, help }) => ({ ...profiles[profileId], help }));
 }

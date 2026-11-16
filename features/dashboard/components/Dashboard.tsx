@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import ClassSearch from "./ClassSearch";
+import CourseSearch from "./CourseSearch";
 import styles from "../discovery.module.css";
 
 export default function Dashboard() {
@@ -10,7 +10,7 @@ export default function Dashboard() {
         <h1>Find your course.</h1>
         <p>Explore courses and find students offering to help.</p>
       </header>
-      <Suspense fallback={<p role="status">Loading course search…</p>}><ClassSearch /></Suspense>
+      <Suspense fallback={<p role="status">Loading course search…</p>}><CourseSearch /></Suspense>
     </main>
   );
 }

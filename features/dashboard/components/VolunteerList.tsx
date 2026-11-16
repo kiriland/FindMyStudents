@@ -19,7 +19,7 @@ export default function VolunteerList({ volunteers, courseCode }: { volunteers: 
             <li key={volunteer.id}>
               <button type="button" className={styles.volunteerCard} onClick={() => setSelected(volunteer)} aria-haspopup="dialog">
                 <span className={styles.avatar} aria-hidden="true">{volunteer.initials}</span>
-                <span><span className={styles.volunteerName}>{volunteer.name}</span><span className={styles.volunteerBio}>{volunteer.introduction}</span><span className={styles.helpNote}>{volunteer.help}</span><span className={styles.previewLink}>View demo profile ↗</span></span>
+                <span><span className={styles.cardHeading}><span className={styles.volunteerName}>{volunteer.name}</span><span className={styles.demoBadge}>Demo profile</span></span><span className={styles.volunteerBio}>{volunteer.introduction}</span><span className={styles.helpNote}>{volunteer.help}</span><span className={styles.previewLink}>View demo profile ↗</span></span>
               </button>
             </li>
           ))}

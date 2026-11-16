@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import type { NextRequest } from "next/server";
-import { findCourses } from "@/features/dashboard/classes-service";
+import { findCourses } from "@/features/dashboard/course-catalogue";
 import { readCourseQuery } from "@/features/dashboard/course-model";
 
 export async function GET(request: NextRequest) {
