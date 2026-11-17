@@ -96,6 +96,8 @@ const PICTURE_FAILED = "Your picture could not be saved. Please try again.";
 function pictureRefusal(refusal: PictureRefusal) {
   if (refusal.reason === "invalid-file") return refusal.message;
   if (refusal.reason === "no-profile") return REFUSALS["no-profile"];
+  // The same for every block, so it never says which labels matched.
+  if (refusal.reason === "blocked") return "This picture can’t be used as a profile picture. Please choose another.";
   return "Your upload didn’t arrive. Please choose the picture again.";
 }
 

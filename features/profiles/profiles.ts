@@ -8,6 +8,7 @@ import { getCourse } from "@/features/dashboard/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/dashboard/course-model";
 import { profileHref } from "./profile-href";
 import { checkPictureFile, CONTACT_FIELDS, PICTURE_CONTENT_ERROR, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
+import { moderatePicture } from "./moderation";
 import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload } from "./pictures";
 
 /**
@@ -65,7 +66,11 @@ export type HelpOfferRefusal = "limit" | "unknown-course" | "no-profile";
 export type PictureUpload = { uploadId: string; url: string; fields: Record<string, string> };
 
 /** Why a picture was not accepted. */
-export type PictureRefusal = { reason: "invalid-file"; message: string } | { reason: "missing-upload" } | { reason: "no-profile" };
+export type PictureRefusal =
+  | { reason: "invalid-file"; message: string }
+  | { reason: "blocked" }
+  | { reason: "missing-upload" }
+  | { reason: "no-profile" };
 
 /** The outcome of an edit: saved, or rejected with an error per field. */
 export type ProfileUpdate<Field extends string> =
@@ -421,10 +426,10 @@ export async function startPictureUpload(viewer: Viewer, type: string, size: num
 }
 
 /**
- * Checks the Viewer's upload is a real JPEG or PNG, strips its metadata and
- * publishes it as their picture, replacing any previous one. The upload is
- * deleted whatever the outcome, and a refused upload leaves the current
- * picture in place.
+ * Checks the Viewer's upload is a real JPEG or PNG, strips its metadata,
+ * moderates it and publishes it as their picture, replacing any previous one.
+ * The upload is deleted whatever the outcome, and a refused upload leaves the
+ * current picture in place.
  */
 export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Promise<{ ok: true } | { ok: false; refusal: PictureRefusal }> {
   if (!isUploadId(uploadId)) return { ok: false, refusal: { reason: "missing-upload" } };
@@ -434,6 +439,12 @@ export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Pr
     const picture = await cleanPicture(bytes);
     if (!picture) {
       return { ok: false, refusal: { reason: "invalid-file", message: PICTURE_CONTENT_ERROR } };
+    }
+    const moderation = await moderatePicture(picture.bytes);
+    if (!moderation.allowed) {
+      // Only the label names, for tuning moderation: never the picture itself.
+      console.warn("A picture was blocked by moderation", { studentId: viewer.studentId, labels: moderation.labels });
+      return { ok: false, refusal: { reason: "blocked" } };
     }
     const key = await publishPicture(viewer.studentId, uploadId, picture);
     let previous: unknown;

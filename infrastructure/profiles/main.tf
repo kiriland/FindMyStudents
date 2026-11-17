@@ -234,7 +234,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "pictures" {
 }
 
 # The app's Web Function signs upload forms and picture links with its own
-# role, so that role needs the same access the browser is granted.
+# role, so that role needs the same access the browser is granted. It also
+# moderates each upload with Rekognition before publishing it.
 resource "aws_iam_role_policy" "app_pictures" {
   name = "${var.name}-pictures"
   role = local.app_role_name
@@ -257,6 +258,14 @@ resource "aws_iam_role_policy" "app_pictures" {
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
         Resource = aws_s3_bucket.pictures.arn
+      },
+      {
+        # The app sends the image bytes itself, so Rekognition needs no bucket
+        # access. DetectModerationLabels has no resource-level permissions.
+        Sid      = "ModeratePictures"
+        Effect   = "Allow"
+        Action   = ["rekognition:DetectModerationLabels"]
+        Resource = "*"
       }
     ]
   })

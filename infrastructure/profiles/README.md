@@ -13,13 +13,16 @@ Terraform for student Profiles:
   public access blocked, CORS for uploads from the app's origins, and a
   lifecycle rule that deletes unconfirmed uploads in `quarantine/` after 1 day
 - an inline policy, `<name>-pictures`, on the app's Web Function execution role,
-  giving it access to `quarantine/` and `pictures/` in that bucket
+  giving it access to `quarantine/` and `pictures/` in that bucket, and to
+  Rekognition's `DetectModerationLabels`
 
 The browser uploads a picture into `quarantine/` with a presigned POST that only
 accepts JPEG or PNG of up to 5 MB. The app then checks the file's real type,
-strips its metadata with `sharp` and publishes it under `pictures/`, deleting
-the picture it replaces. Pictures are shown through signed links that expire
-after at most 15 minutes, and only signed-in students are given one.
+strips its metadata with `sharp`, moderates the stripped image with Rekognition
+and publishes it under `pictures/`, deleting the picture it replaces. A blocked
+upload is deleted and the current picture stays. Pictures are shown through
+signed links that expire after at most 15 minutes, and only signed-in students
+are given one.
 
 Cognito can't add required attributes to an existing pool, which is why the pool
 is new. Accounts in the old pool aren't migrated, so students sign up again.
@@ -27,6 +30,24 @@ is new. Accounts in the old pool aren't migrated, so students sign up again.
 The app saves a student's name in their Profile the first time it sees them on
 the server, and doesn't update it later. Changing the name in Cognito doesn't
 change the Profile.
+
+## Picture moderation
+
+The app calls `DetectModerationLabels` on every upload, in the same request that
+publishes it. A picture is blocked when any label has a confidence of at least
+`PICTURE_MODERATION_MIN_CONFIDENCE` (default `80`) and belongs to one of the
+top-level categories in `PICTURE_MODERATION_BLOCKED_CATEGORIES`, a
+comma-separated list. By default these are Explicit, Non-Explicit Nudity of
+Intimate parts and Kissing, Violence, Visually Disturbing, Hate Symbols, Rude
+Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear" and Gambling are
+allowed. There is no face check and no human review.
+
+The student sees one generic message whichever label matched. Each block is
+logged with the student's ID and the names of the matching labels, never the
+image, so the threshold and categories can be tuned from the logs.
+
+To change either setting, set the GitHub variable of the same name and
+redeploy. Leave a variable unset to keep its default.
 
 ## Prerequisites
 
@@ -59,7 +80,8 @@ terraform -chdir=infrastructure/profiles output
 ```
 
 The plan creates the user pool, the app client, the table with its index, the
-picture bucket and its settings, and the role policy for the bucket. On a table
+picture bucket and its settings, and the role policy for the bucket and
+Rekognition. On a table
 that already exists, the plan only adds the index; DynamoDB fills it from the
 existing Help Offers in the background.
 The pool and the table have deletion protection turned on.
@@ -86,15 +108,21 @@ In **Settings → Secrets and variables → Actions → Variables**, set:
 | `PROFILES_TABLE_NAME` | `profiles_table_name` |
 | `PROFILE_PICTURES_BUCKET_NAME` | `profile_pictures_bucket_name` |
 
+`PICTURE_MODERATION_MIN_CONFIDENCE` and `PICTURE_MODERATION_BLOCKED_CATEGORIES`
+are optional; see [Picture moderation](#picture-moderation).
+
 For local development, put the same values in `.env.local`. Then redeploy by
 running the deploy workflow from the Actions tab, or by pushing to `main`.
 `NEXT_PUBLIC_*` values are embedded at build time, so a redeploy is required.
 
 Check that signup, confirm-signup, login, logout and `/students/<your id>` work
 against the new pool, and that you can upload, replace and remove a picture.
+Try a few ordinary photos, including a swimwear photo, which should be
+accepted, and sample images from the blocked categories, which should be
+refused while your current picture stays.
 
-For local development, your AWS credentials need the same bucket access as the
-app's role.
+For local development, your AWS credentials need the same bucket and
+Rekognition access as the app's role.
 
 ### 4. Retire the old pool
 
