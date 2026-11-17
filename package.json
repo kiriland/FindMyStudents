@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js"
+    "prep:standalone": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && cp bootstrap.js .next/standalone/index.js && sh scripts/dereference-standalone.sh"
   },
   "dependencies": {
     "@aws-amplify/adapter-nextjs": "^1.8.1",
