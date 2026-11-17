@@ -38,12 +38,14 @@ async function asSignedInStudent<Result>(
   failureMessage: string,
   act: (viewer: Viewer) => Promise<Result>,
 ): Promise<Result | ActionFailure> {
-  const viewer = await getViewer();
-  if (!viewer) return failed("Your session has ended. Log in again to make changes.");
+  // Inside the `try`, because finding the Viewer can create their Profile, and that can fail.
+  let viewer: Viewer | null = null;
   try {
+    viewer = await getViewer();
+    if (!viewer) return failed("Your session has ended. Log in again to make changes.");
     return await act(viewer);
   } catch (error) {
-    console.error(`${task} failed`, { studentId: viewer.studentId, error });
+    console.error(`${task} failed`, { studentId: viewer?.studentId, error });
     return failed(failureMessage);
   }
 }

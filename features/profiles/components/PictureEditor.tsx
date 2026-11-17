@@ -19,45 +19,43 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const busy = isPending || status.kind === "saving" || status.kind === "removing";
 
-  function upload(file: File) {
-    const check = checkPictureFile(file.type, file.size);
-    if (!check.ok) {
-      setStatus({ kind: "error", message: check.error });
-      return;
-    }
-    setStatus({ kind: "saving" });
+  /** Shows `pending` while `change` runs, then its outcome, or `failure` if it throws (e.g. the network drops). */
+  function run(pending: Status, change: () => Promise<Status>, failure: string) {
+    setStatus(pending);
     startTransition(async () => {
-      const started = await requestPictureUpload(file.type, file.size);
-      if (started.status === "failed") {
-        setStatus({ kind: "error", message: started.message });
-        return;
-      }
-      const body = new FormData();
-      for (const [name, value] of Object.entries(started.upload.fields)) body.append(name, value);
-      // S3 reads the form fields in order and needs the file last.
-      body.append("file", file);
-      try {
-        const response = await fetch(started.upload.url, { method: "POST", body });
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          setStatus({ kind: "error", message: text.includes("EntityTooLarge") ? PICTURE_SIZE_ERROR : UPLOAD_FAILED });
-          return;
-        }
-      } catch {
-        setStatus({ kind: "error", message: UPLOAD_FAILED });
-        return;
-      }
-      const confirmed = await confirmPicture(started.upload.uploadId);
-      setStatus(confirmed.status === "done" ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message });
+      setStatus(await change().catch((): Status => ({ kind: "error", message: failure })));
     });
   }
 
+  async function save(file: File): Promise<Status> {
+    const started = await requestPictureUpload(file.type, file.size);
+    if (started.status === "failed") return { kind: "error", message: started.message };
+    const body = new FormData();
+    for (const [name, value] of Object.entries(started.upload.fields)) body.append(name, value);
+    // S3 reads the form fields in order and needs the file last.
+    body.append("file", file);
+    const response = await fetch(started.upload.url, { method: "POST", body });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { kind: "error", message: text.includes("EntityTooLarge") ? PICTURE_SIZE_ERROR : UPLOAD_FAILED };
+    }
+    const confirmed = await confirmPicture(started.upload.uploadId);
+    return confirmed.status === "done" ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message };
+  }
+
+  async function clear(): Promise<Status> {
+    const result = await deletePicture();
+    return result.status === "done" ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message };
+  }
+
+  function upload(file: File) {
+    const check = checkPictureFile(file.type, file.size);
+    if (!check.ok) setStatus({ kind: "error", message: check.error });
+    else run({ kind: "saving" }, () => save(file), UPLOAD_FAILED);
+  }
+
   function remove() {
-    setStatus({ kind: "removing" });
-    startTransition(async () => {
-      const result = await deletePicture();
-      setStatus(result.status === "done" ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message });
-    });
+    run({ kind: "removing" }, clear, "Your picture could not be removed. Please try again.");
   }
 
   return (

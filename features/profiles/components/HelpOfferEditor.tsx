@@ -63,7 +63,8 @@ export default function HelpOfferEditor({ offers }: { offers: HelpOfferView[] })
     setBusyCode(courseCode);
     setMessage("");
     startTransition(async () => {
-      const result = await change(courseCode);
+      // A rejected action (e.g. the network drops) must still free the button.
+      const result = await change(courseCode).catch((): ChangeResult => ({ status: "failed", message: "That course could not be changed. Please try again." }));
       if (result.status === "failed") setMessage(result.message);
       setBusyCode(null);
     });

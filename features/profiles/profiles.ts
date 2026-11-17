@@ -461,23 +461,26 @@ export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Pr
       return { ok: false, refusal: { reason: "blocked" } };
     }
     const key = await publishPicture(upload, picture);
-    let previous: unknown;
-    try {
-      const { Attributes } = await db.send(new UpdateCommand({
-        TableName: tableName(),
-        Key: profileKey(viewer.studentId),
-        UpdateExpression: "SET pictureKey = :key",
-        ConditionExpression: "attribute_exists(pk)",
-        ExpressionAttributeValues: { ":key": key },
-        ReturnValues: "UPDATED_OLD",
-      }));
-      previous = Attributes?.pictureKey;
-    } catch (error) {
-      await deletePictureObject(key);
-      if (error instanceof ConditionalCheckFailedException) return { ok: false, refusal: { reason: "no-profile" } };
+    const updated = await db.send(new UpdateCommand({
+      TableName: tableName(),
+      Key: profileKey(viewer.studentId),
+      UpdateExpression: "SET pictureKey = :key",
+      ConditionExpression: "attribute_exists(pk)",
+      ExpressionAttributeValues: { ":key": key },
+      ReturnValues: "UPDATED_OLD",
+    })).catch((error) => {
+      // Only a failed condition proves the Profile doesn't point at the new
+      // picture. Any other error may follow a committed update, so the picture
+      // is kept: at worst an orphan, never a Profile pointing at nothing.
+      if (error instanceof ConditionalCheckFailedException) return null;
       throw error;
+    });
+    if (!updated) {
+      await deletePictureObject(key);
+      return { ok: false, refusal: { reason: "no-profile" } };
     }
     // No history: the picture it replaced is gone for good.
+    const previous = updated.Attributes?.pictureKey;
     if (isPictureKey(previous) && previous !== key) await deleteOldPicture(viewer, previous);
     return { ok: true };
   } finally {
