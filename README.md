@@ -94,8 +94,9 @@ Profiles module in `features/profiles/profiles.ts`, never AWS directly. Its
 creates the student's Profile the first time it sees them. Every Profile
 operation takes that Viewer.
 
-The deployed runtime needs `PROFILES_TABLE_NAME` and `dynamodb:GetItem` and
-`dynamodb:PutItem` permission on that table.
+The deployed runtime needs `PROFILES_TABLE_NAME` and the table/index permissions
+listed in the profiles infrastructure guide, including the permissions for Help
+Offers and volunteer queries.
 
 ## Class data
 
