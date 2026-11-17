@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     },
   },
   turbopack: {
+    root: __dirname,
     rules: {
       // Only the global entry imports Tailwind. Passing CSS Modules through
       // this rule's `as` mapping turns them into ordinary, unscoped CSS.
