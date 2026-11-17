@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { courseHref, discoveryHref, DISCOVERY_PATH, EMPTY_QUERY, PAGE_SIZE, queryString, readCourseQuery, withQuery } from "../course-model";
 import type { CourseQuery } from "../course-model";
 import { useCoursePages } from "./useCoursePages";
-import styles from "../discovery.module.css";
+import styles from "../directory.module.css";
 
 function navigate(query: CourseQuery, replace = false) {
   const href = discoveryHref(query);
@@ -33,9 +33,13 @@ export default function CourseSearch() {
     }
   }, [pathname, params, queryKey]);
 
-  useEffect(() => {
-    setSearch(readCourseQuery(new URLSearchParams(queryKey)).search);
-  }, [queryKey]);
+  // Reset the draft before committing a render for a different URL query.
+  // This also prevents a stale draft from overwriting Back/Forward navigation.
+  const [draftQueryKey, setDraftQueryKey] = useState(queryKey);
+  if (draftQueryKey !== queryKey) {
+    setDraftQueryKey(queryKey);
+    setSearch(query.search);
+  }
 
   useEffect(() => {
     if (pathname !== DISCOVERY_PATH || search.trim() === query.search) return;
@@ -53,12 +57,15 @@ export default function CourseSearch() {
   }
 
   return (
-    <>
+    <div className={styles.searchArea}>
       <section className={styles.searchPanel} aria-label="Course search">
         <div className={styles.searchField}>
           <label htmlFor="course-search">Search courses</label>
-          <input id="course-search" type="search" maxLength={300} value={search}
-            onChange={(event) => setSearch(event.target.value)} placeholder="Course code, title, or keyword" />
+          <div className={styles.inputWrap}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+            <input id="course-search" type="search" maxLength={300} value={search}
+              onChange={(event) => setSearch(event.target.value)} placeholder="Search by course code, title, or keyword…" />
+          </div>
         </div>
         <div className={styles.departmentField}>
           <label htmlFor="department">Department</label>
@@ -73,13 +80,13 @@ export default function CourseSearch() {
 
       <div className={styles.resultHeader} role="status" aria-live="polite">
         <p>{loading ? "Finding courses…" : error ? "Courses unavailable" : result ? `${result.total.toLocaleString()} ${result.total === 1 ? "course" : "courses"} found` : "Browse courses"}</p>
-        {currentPage && currentPage.total > 0 && <span>{firstShown}–{Math.min(firstShown + PAGE_SIZE - 1, currentPage.total)} of {currentPage.total.toLocaleString()}</span>}
+        {currentPage && currentPage.total > 0 && <span>Showing {firstShown}–{Math.min(firstShown + PAGE_SIZE - 1, currentPage.total)} of {currentPage.total.toLocaleString()}</span>}
       </div>
 
       {error ? (
         <div className={styles.empty} role="alert"><h2>Let’s try that again.</h2><p>{error}</p><button className={styles.button} type="button" onClick={retry}>Try again</button></div>
       ) : !currentPage ? (
-        <div className={styles.skeleton} aria-label="Loading courses" aria-busy="true"><div /><div /><div /></div>
+        <div className={styles.skeleton} aria-label="Loading courses" aria-busy="true"><div /><div /><div /><div /></div>
       ) : currentPage.total === 0 ? (
         <div className={styles.empty}><h2>{currentPage.catalogueTotal === 0 ? "No courses yet" : "No courses found"}</h2><p>{currentPage.catalogueTotal === 0 ? "The catalogue is empty. Please check back soon." : "Try a different keyword or clear your filters."}</p>{currentPage.catalogueTotal > 0 && <button className={styles.button} type="button" onClick={clearFilters}>Clear filters</button>}</div>
       ) : (
@@ -87,9 +94,9 @@ export default function CourseSearch() {
           {currentPage.courses.map((course) => (
             <li key={course.courseCode}>
               <Link href={withQuery(courseHref(course), queryKey)} prefetch={false} scroll={false} className={styles.courseRow}>
-                <span className={styles.courseCode}>{course.courseCode}</span>
-                <div><h2>{course.title}</h2><p>{course.preview || "Open this course to learn more."}</p></div>
-                <span className={styles.rowAction} aria-hidden="true">View course ↗</span>
+                <div className={styles.cardTop}><span className={styles.courseCode}>{course.courseCode}</span><span className={styles.school}>Baruch College</span></div>
+                <div className={styles.cardContent}><h2>{course.title}</h2><p>{course.preview || "Open this course to learn more."}</p></div>
+                <span className={styles.rowAction} aria-hidden="true">View Course <span aria-hidden="true">→</span></span>
               </Link>
             </li>
           ))}
@@ -98,11 +105,11 @@ export default function CourseSearch() {
 
       {currentPage && currentPage.total > 0 && (
         <nav className={styles.pagination} aria-label="Course results pages">
-          <button className={styles.button} type="button" disabled={updating || currentPage.query.page === 1} onClick={() => { navigate({ ...currentPage.query, page: currentPage.query.page - 1 }); window.scrollTo(0, 0); }}>Previous</button>
+          <button className={styles.button} type="button" disabled={updating || currentPage.query.page === 1} onClick={() => { navigate({ ...currentPage.query, page: currentPage.query.page - 1 }); document.getElementById("explore-classes")?.scrollIntoView({ block: "start" }); }}>Previous</button>
           <span>Page {currentPage.query.page} of {currentPage.pageCount}</span>
-          <button className={styles.button} type="button" disabled={updating || currentPage.query.page === currentPage.pageCount} onClick={() => { navigate({ ...currentPage.query, page: currentPage.query.page + 1 }); window.scrollTo(0, 0); }}>Next</button>
+          <button className={styles.button} type="button" disabled={updating || currentPage.query.page === currentPage.pageCount} onClick={() => { navigate({ ...currentPage.query, page: currentPage.query.page + 1 }); document.getElementById("explore-classes")?.scrollIntoView({ block: "start" }); }}>Next</button>
         </nav>
       )}
-    </>
+    </div>
   );
 }

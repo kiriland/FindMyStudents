@@ -1,5 +1,7 @@
+
 import AmplifyProvider from "@/components/AmplifyProvider";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 
@@ -17,9 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col bg-white text-zinc-900">
         <AmplifyProvider>
-          <Navbar />
+          {/* Navbar reads usePathname(), which suspends while prerendering
+              routes with dynamic params such as /students/[id]. */}
+          <Suspense>
+            <Navbar />
+          </Suspense>
           {children}
           {modal}
         </AmplifyProvider>

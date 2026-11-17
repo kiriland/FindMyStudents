@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
-import styles from "./Navbar.module.css";
 
 type AccountMenuProps = {
   email: string | null;
@@ -103,11 +102,11 @@ export default function AccountMenu({ email, profileHref, onLogout }: AccountMen
   }
 
   return (
-    <div ref={rootRef} className={styles.menuRoot}>
+    <div ref={rootRef} className="relative min-w-0">
       <button
         ref={buttonRef}
         type="button"
-        className={styles.menuButton}
+        className="flex max-w-56 cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         title={email ?? undefined}
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -115,15 +114,15 @@ export default function AccountMenu({ email, profileHref, onLogout }: AccountMen
         onClick={() => (isOpen ? close() : open("first"))}
         onKeyDown={handleButtonKeyDown}
       >
-        <span className={styles.menuLabel}>{email ?? "Signed in"}</span>
-        <span aria-hidden="true" className={styles.caret}>▾</span>
+        <span className="truncate">{email ?? "Signed in"}</span>
+        <span aria-hidden="true" className="shrink-0">▾</span>
       </button>
       <div
         ref={menuRef}
         id={menuId}
         role="menu"
         aria-label="Account"
-        className={styles.menu}
+        className="absolute right-0 top-full z-50 mt-1 flex min-w-40 flex-col rounded-xl border border-zinc-200 bg-white p-1 shadow-lg [&[hidden]]:hidden"
         hidden={!isOpen}
         onKeyDown={handleMenuKeyDown}
       >
@@ -131,6 +130,7 @@ export default function AccountMenu({ email, profileHref, onLogout }: AccountMen
           href={profileHref}
           role="menuitem"
           tabIndex={-1}
+          className="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
           onClick={() => close()}
         >
           Profile
@@ -139,6 +139,7 @@ export default function AccountMenu({ email, profileHref, onLogout }: AccountMen
           type="button"
           role="menuitem"
           tabIndex={-1}
+          className="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
           onClick={() => {
             close();
             onLogout();
