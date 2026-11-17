@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveProfile, type ProfileFormState } from "../actions";
+import PictureEditor from "./PictureEditor";
 import { BIO_MAX_LENGTH, bioLength, type ContactField, type Contacts } from "../profile-fields";
 import styles from "../profile.module.css";
 
 type OwnProfileProps = {
   bio: string;
+  hasPicture: boolean;
   contacts: Contacts;
   /** The read-only Profile, shown outside edit mode. */
   children: React.ReactNode;
@@ -16,7 +18,7 @@ type OwnProfileProps = {
  * The owner's view of their Profile: read-only until they choose Edit profile,
  * then a form for the fields they can change.
  */
-export default function OwnProfile({ bio, contacts, children }: OwnProfileProps) {
+export default function OwnProfile({ bio, hasPicture, contacts, children }: OwnProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
   const editButton = useRef<HTMLButtonElement>(null);
   // Only move focus back after leaving edit mode, not on the first render.
@@ -34,7 +36,15 @@ export default function OwnProfile({ bio, contacts, children }: OwnProfileProps)
     setIsEditing(false);
   }
 
-  if (isEditing) return <ProfileForm bio={bio} contacts={contacts} onDone={leaveEditMode} />;
+  if (isEditing) {
+    return (
+      <>
+        {/* Outside the form: a picture saves as soon as it is chosen, not with Save. */}
+        <PictureEditor hasPicture={hasPicture} />
+        <ProfileForm bio={bio} contacts={contacts} onDone={leaveEditMode} />
+      </>
+    );
+  }
 
   return (
     <>

@@ -7,7 +7,8 @@ import { getSignedInStudent, type SignedInStudent } from "@/features/auth/server
 import { getCourse } from "@/features/dashboard/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/dashboard/course-model";
 import { profileHref } from "./profile-href";
-import { CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
+import { checkPictureFile, CONTACT_FIELDS, PICTURE_CONTENT_ERROR, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
+import { cleanPicture, createUpload, deletePicture, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload } from "./pictures";
 
 /**
  * The signed-in student a Profile operation acts for. Signed-out visitors have
@@ -20,6 +21,8 @@ export type ProfileView = {
   id: string;
   displayName: string;
   initials: string;
+  /** A short-lived link to the picture, or null to show the initials instead. */
+  pictureUrl: string | null;
   /** Plain text with `\n` line breaks; empty when the student has none. */
   bio: string;
   /** Whether the Viewer owns this Profile and may edit it. */
@@ -38,6 +41,7 @@ export type VolunteerCard = {
   id: string;
   displayName: string;
   initials: string;
+  pictureUrl: string | null;
   /** The start of the bio on one line, at most BIO_EXCERPT_LENGTH characters plus "…". */
   bioExcerpt: string;
   href: string;
@@ -56,6 +60,12 @@ export type ProfileEdit = { bio: string } & Record<ContactField, string>;
 
 /** Why a Help Offer could not be added. */
 export type HelpOfferRefusal = "limit" | "unknown-course" | "no-profile";
+
+/** Where and how the browser uploads a picture, then which upload to confirm. */
+export type PictureUpload = { uploadId: string; url: string; fields: Record<string, string> };
+
+/** Why a picture was not accepted. */
+export type PictureRefusal = { reason: "invalid-file"; message: string } | { reason: "missing-upload" } | { reason: "no-profile" };
 
 /** The outcome of an edit: saved, or rejected with an error per field. */
 export type ProfileUpdate<Field extends string> =
@@ -110,10 +120,18 @@ function shownName(givenName: string, familyName: string) {
   };
 }
 
-/** What every viewer may see of a Profile item, or null when it has no name. */
-function shownProfile(item: Record<string, unknown> | undefined) {
+/**
+ * What every signed-in viewer may see of a Profile item, or null when it has
+ * no name. Signing a picture link is the only way to see a picture, so this is
+ * never called for a signed-out visitor.
+ */
+async function shownProfile(item: Record<string, unknown> | undefined) {
   if (!item || typeof item.givenName !== "string" || typeof item.familyName !== "string") return null;
-  return { ...shownName(item.givenName, item.familyName), bio: typeof item.bio === "string" ? item.bio : "" };
+  return {
+    ...shownName(item.givenName, item.familyName),
+    pictureUrl: isPictureKey(item.pictureKey) ? await pictureUrl(item.pictureKey) : null,
+    bio: typeof item.bio === "string" ? item.bio : "",
+  };
 }
 
 async function ensureProfile(student: SignedInStudent) {
@@ -156,7 +174,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 export async function getProfile(viewer: Viewer, studentId: string): Promise<ProfileView | null> {
   if (!STUDENT_ID.test(studentId)) return null;
   const isOwner = viewer.studentId === studentId;
-  const fields = ["sk", "givenName", "familyName", "bio", "courseCode", "courseTitle", "createdAt", ...(isOwner ? CONTACT_FIELDS : [])];
+  const fields = ["sk", "givenName", "familyName", "bio", "pictureKey", "courseCode", "courseTitle", "createdAt", ...(isOwner ? CONTACT_FIELDS : [])];
   // The Profile and its Help Offers share a partition, so one query reads them all.
   const { Items: items = [] } = await db.send(new QueryCommand({
     TableName: tableName(),
@@ -168,7 +186,7 @@ export async function getProfile(viewer: Viewer, studentId: string): Promise<Pro
     ConsistentRead: true,
   }));
   const item = items.find((candidate) => candidate.sk === "PROFILE");
-  const shown = shownProfile(item);
+  const shown = await shownProfile(item);
   if (!item || !shown) return null;
   const helpOffers = items
     .filter((offer) => typeof offer.sk === "string" && offer.sk.startsWith(HELP_OFFER_PREFIX) && typeof offer.courseCode === "string")
@@ -338,7 +356,7 @@ async function getProfileItems(studentIds: string[]) {
           [tableName()]: {
             Keys: keys,
             // Contact details are never read for a course page.
-            ProjectionExpression: "studentId, givenName, familyName, bio",
+            ProjectionExpression: "studentId, givenName, familyName, bio, pictureKey",
           },
         },
       }));
@@ -383,11 +401,89 @@ export async function getCourseVolunteers(viewer: Viewer | null, courseCode: str
   // A student has one Help Offer per Course, so the IDs are already unique.
   const studentIds = offers.flatMap((offer) => typeof offer.studentId === "string" ? [offer.studentId] : []);
   const profiles = await getProfileItems(studentIds);
-  const cards = studentIds.flatMap((studentId) => {
-    const shown = shownProfile(profiles.get(studentId));
-    if (!shown) return [];
+  const cards = (await Promise.all(studentIds.map(async (studentId): Promise<VolunteerCard | null> => {
+    const shown = await shownProfile(profiles.get(studentId));
+    if (!shown) return null;
     const { bio, ...name } = shown;
-    return [{ id: studentId, ...name, bioExcerpt: bioExcerpt(bio), href: profileHref(studentId) }];
-  });
+    return { id: studentId, ...name, bioExcerpt: bioExcerpt(bio), href: profileHref(studentId) };
+  }))).filter((card) => card !== null);
   return { visibility: "cards", cards };
+}
+
+/**
+ * Lets the Viewer upload a picture of `type` and `size` bytes into
+ * quarantine. Nobody sees it until `confirmPictureUpload` has cleaned it.
+ */
+export async function startPictureUpload(viewer: Viewer, type: string, size: number): Promise<{ ok: true; upload: PictureUpload } | { ok: false; refusal: PictureRefusal }> {
+  const file = checkPictureFile(type, size);
+  if (!file.ok) return { ok: false, refusal: { reason: "invalid-file", message: file.error } };
+  return { ok: true, upload: await createUpload(viewer.studentId, file.value) };
+}
+
+/**
+ * Checks the Viewer's upload is a real JPEG or PNG, strips its metadata and
+ * publishes it as their picture, replacing any previous one. The upload is
+ * deleted whatever the outcome, and a refused upload leaves the current
+ * picture in place.
+ */
+export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Promise<{ ok: true } | { ok: false; refusal: PictureRefusal }> {
+  if (!isUploadId(uploadId)) return { ok: false, refusal: { reason: "missing-upload" } };
+  const bytes = await readUpload(viewer.studentId, uploadId);
+  if (!bytes) return { ok: false, refusal: { reason: "missing-upload" } };
+  try {
+    const picture = await cleanPicture(bytes);
+    if (!picture) {
+      return { ok: false, refusal: { reason: "invalid-file", message: PICTURE_CONTENT_ERROR } };
+    }
+    const key = await publishPicture(viewer.studentId, uploadId, picture);
+    let previous: unknown;
+    try {
+      const { Attributes } = await db.send(new UpdateCommand({
+        TableName: tableName(),
+        Key: profileKey(viewer.studentId),
+        UpdateExpression: "SET pictureKey = :key",
+        ConditionExpression: "attribute_exists(pk)",
+        ExpressionAttributeValues: { ":key": key },
+        ReturnValues: "UPDATED_OLD",
+      }));
+      previous = Attributes?.pictureKey;
+    } catch (error) {
+      await deletePicture(key);
+      if (error instanceof ConditionalCheckFailedException) return { ok: false, refusal: { reason: "no-profile" } };
+      throw error;
+    }
+    // No history: the picture it replaced is gone for good.
+    if (isPictureKey(previous) && previous !== key) await deleteOldPicture(viewer, previous);
+    return { ok: true };
+  } finally {
+    // The lifecycle rule removes it within a day if this fails.
+    await deleteUpload(viewer.studentId, uploadId).catch((error) => {
+      console.error("Deleting a quarantined upload failed", { studentId: viewer.studentId, uploadId, error });
+    });
+  }
+}
+
+/** Removes the Viewer's picture, so their initials are shown again. Removing none does nothing. */
+export async function removePicture(viewer: Viewer): Promise<void> {
+  const { Attributes } = await db.send(new UpdateCommand({
+    TableName: tableName(),
+    Key: profileKey(viewer.studentId),
+    UpdateExpression: "REMOVE pictureKey",
+    ConditionExpression: "attribute_exists(pk)",
+    ReturnValues: "UPDATED_OLD",
+  })).catch((error) => {
+    if (error instanceof ConditionalCheckFailedException) return { Attributes: undefined };
+    throw error;
+  });
+  if (isPictureKey(Attributes?.pictureKey)) await deleteOldPicture(viewer, Attributes.pictureKey);
+}
+
+// The Profile no longer points at the picture, so it can't be shown again. If
+// deleting it fails, it is only an orphan in a private bucket.
+async function deleteOldPicture(viewer: Viewer, key: string) {
+  try {
+    await deletePicture(key);
+  } catch (error) {
+    console.error("Deleting a replaced picture failed", { studentId: viewer.studentId, key, error });
+  }
 }

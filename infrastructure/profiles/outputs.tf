@@ -20,3 +20,8 @@ output "profiles_table_name" {
 output "profiles_table_arn" {
   value = aws_dynamodb_table.profiles.arn
 }
+
+output "profile_pictures_bucket_name" {
+  description = "Value for the PROFILE_PICTURES_BUCKET_NAME GitHub variable and .env.local."
+  value       = aws_s3_bucket.pictures.bucket
+}

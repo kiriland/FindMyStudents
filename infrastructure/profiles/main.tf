@@ -139,3 +139,130 @@ resource "aws_dynamodb_table" "profiles" {
     enabled = true
   }
 }
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  # Bucket names are global, so the account ID keeps this one unique.
+  pictures_bucket_name = "${var.name}-pictures-${data.aws_caller_identity.current.account_id}"
+  # A role ARN may include a path; the policy needs only the role's name.
+  app_role_name = regex("[^/]+$", var.app_execution_role_arn)
+}
+
+# Profile pictures. Browsers upload into quarantine/ with a presigned POST; the
+# app checks and cleans each upload, then publishes it under pictures/. Nothing
+# is public: pictures are shown through short-lived signed links.
+resource "aws_s3_bucket" "pictures" {
+  bucket = local.pictures_bucket_name
+}
+
+resource "aws_s3_bucket_public_access_block" "pictures" {
+  bucket                  = aws_s3_bucket.pictures.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "pictures" {
+  bucket = aws_s3_bucket.pictures.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "pictures" {
+  bucket = aws_s3_bucket.pictures.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "pictures" {
+  bucket = aws_s3_bucket.pictures.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "DenyInsecureTransport"
+      Effect    = "Deny"
+      Principal = "*"
+      Action    = "s3:*"
+      Resource  = [aws_s3_bucket.pictures.arn, "${aws_s3_bucket.pictures.arn}/*"]
+      Condition = { Bool = { "aws:SecureTransport" = "false" } }
+    }]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.pictures]
+}
+
+# Lets the app's pages POST uploads straight to the bucket. Pictures are shown
+# with plain <img> tags, which need no CORS.
+resource "aws_s3_bucket_cors_configuration" "pictures" {
+  bucket = aws_s3_bucket.pictures.id
+  cors_rule {
+    allowed_methods = ["POST"]
+    allowed_origins = var.app_origins
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "pictures" {
+  bucket = aws_s3_bucket.pictures.id
+
+  # Uploads the app never confirmed, or failed to delete.
+  rule {
+    id     = "expire-quarantine"
+    status = "Enabled"
+    filter {
+      prefix = "quarantine/"
+    }
+    expiration {
+      days = 1
+    }
+  }
+
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+# The app's Web Function signs upload forms and picture links with its own
+# role, so that role needs the same access the browser is granted.
+resource "aws_iam_role_policy" "app_pictures" {
+  name = "${var.name}-pictures"
+  role = local.app_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "QuarantineUploads"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.pictures.arn}/quarantine/*"
+      },
+      {
+        Sid      = "PublishedPictures"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.pictures.arn}/pictures/*"
+      },
+      {
+        # Without it, a missing upload reads as AccessDenied instead of NoSuchKey.
+        Sid      = "ListForMissingKeys"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.pictures.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["quarantine/*", "pictures/*"] }
+        }
+      }
+    ]
+  })
+}

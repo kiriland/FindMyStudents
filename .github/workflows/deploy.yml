@@ -55,6 +55,7 @@ jobs:
             --execution-role-arn "${{ secrets.AWS_LAMBDA_EXECUTION_ROLE_ARN }}" \
             --env DYNAMODB_TABLE_NAME=${{ vars.DYNAMODB_TABLE_NAME }} \
             --env PROFILES_TABLE_NAME=${{ vars.PROFILES_TABLE_NAME }} \
+            --env PROFILE_PICTURES_BUCKET_NAME=${{ vars.PROFILE_PICTURES_BUCKET_NAME }} \
             --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
             --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
             --env NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }} \

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Avatar from "@/features/profiles/components/Avatar";
 import type { CourseVolunteers } from "@/features/profiles/profiles";
 import styles from "../discovery.module.css";
 
@@ -21,7 +22,7 @@ export default function VolunteerList({ volunteers, courseCode, loginHref }: { v
           {volunteers.cards.map((volunteer) => (
             <li key={volunteer.id}>
               <Link href={volunteer.href} prefetch={false} className={styles.volunteerCard}>
-                <span className={styles.avatar} aria-hidden="true">{volunteer.initials}</span>
+                <Avatar className={styles.avatar} initials={volunteer.initials} pictureUrl={volunteer.pictureUrl} />
                 <span>
                   <span className={styles.volunteerName}>{volunteer.displayName}</span>
                   {volunteer.bioExcerpt && <span className={styles.volunteerBio}>{volunteer.bioExcerpt}</span>}
