@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { ConditionalCheckFailedException, TransactionCanceledException } from "@aws-sdk/client-dynamodb";
-import { BatchGetCommand, type BatchGetCommandOutput, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
+import { BatchGetCommand, type BatchGetCommandOutput, DeleteCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import { db } from "@/lib/dynamodb";
 import { isUuid } from "@/lib/uuid";
 import { getSignedInStudent, type SignedInStudent } from "@/features/auth/server-session";
@@ -336,6 +336,13 @@ export async function removeHelpOffer(viewer: Viewer, courseCode: string): Promi
     }));
   } catch (error) {
     if (conditionFailed(error, 0)) return;
+    if (conditionFailed(error, 1)) {
+      // The offer exists but the Profile's count is missing or already 0, so
+      // the count has drifted. Remove the offer anyway rather than leave it stuck.
+      console.warn("A Help Offer outlived its Profile's count", { studentId: viewer.studentId, courseCode: normalizedCode });
+      await db.send(new DeleteCommand({ TableName: tableName(), Key: offerKey }));
+      return;
+    }
     throw error;
   }
 }
