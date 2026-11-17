@@ -118,6 +118,7 @@ export default function Navbar() {
               email={account.email}
               profileHref={profileHref(account.userId)}
               onLogout={handleLogout}
+              loggingOut={loggingOut}
             />
           ) : (
             <>

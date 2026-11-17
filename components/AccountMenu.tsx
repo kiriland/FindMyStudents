@@ -7,6 +7,7 @@ type AccountMenuProps = {
   email: string | null;
   profileHref: string;
   onLogout: () => void;
+  loggingOut: boolean;
 };
 
 /**
@@ -14,7 +15,7 @@ type AccountMenuProps = {
  * menu button pattern: Esc closes and refocuses the button, arrow keys,
  * Home and End move between items, and clicking outside closes the menu.
  */
-export default function AccountMenu({ email, profileHref, onLogout }: AccountMenuProps) {
+export default function AccountMenu({ email, profileHref, onLogout, loggingOut }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -139,13 +140,14 @@ export default function AccountMenu({ email, profileHref, onLogout }: AccountMen
           type="button"
           role="menuitem"
           tabIndex={-1}
-          className="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+          disabled={loggingOut}
+          className="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none disabled:opacity-50"
           onClick={() => {
             close();
             onLogout();
           }}
         >
-          Log out
+          {loggingOut ? "Logging out..." : "Log out"}
         </button>
       </div>
     </div>
