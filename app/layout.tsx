@@ -1,4 +1,5 @@
 
+import { Suspense } from "react";
 import AmplifyProvider from "@/components/AmplifyProvider";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -20,7 +21,9 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-white text-zinc-900">
         <AmplifyProvider>
-          <Navbar />
+          <Suspense fallback={<div className="h-[70px] border-b border-zinc-200" aria-hidden="true" />}>
+            <Navbar />
+          </Suspense>
           {children}
           {modal}
         </AmplifyProvider>
