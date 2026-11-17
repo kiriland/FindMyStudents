@@ -8,7 +8,7 @@ import { getCourse } from "@/features/dashboard/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/dashboard/course-model";
 import { profileHref } from "./profile-href";
 import { checkPictureFile, CONTACT_FIELDS, PICTURE_CONTENT_ERROR, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
-import { cleanPicture, createUpload, deletePicture, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload } from "./pictures";
+import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload } from "./pictures";
 
 /**
  * The signed-in student a Profile operation acts for. Signed-out visitors have
@@ -448,7 +448,7 @@ export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Pr
       }));
       previous = Attributes?.pictureKey;
     } catch (error) {
-      await deletePicture(key);
+      await deletePictureObject(key);
       if (error instanceof ConditionalCheckFailedException) return { ok: false, refusal: { reason: "no-profile" } };
       throw error;
     }
@@ -482,7 +482,7 @@ export async function removePicture(viewer: Viewer): Promise<void> {
 // deleting it fails, it is only an orphan in a private bucket.
 async function deleteOldPicture(viewer: Viewer, key: string) {
   try {
-    await deletePicture(key);
+    await deletePictureObject(key);
   } catch (error) {
     console.error("Deleting a replaced picture failed", { studentId: viewer.studentId, key, error });
   }

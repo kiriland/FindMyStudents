@@ -142,7 +142,7 @@ export async function publishPicture(studentId: string, uploadId: string, pictur
   return key;
 }
 
-export async function deletePicture(key: string) {
+export async function deletePictureObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: bucketName(), Key: key }));
 }
 

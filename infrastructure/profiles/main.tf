@@ -242,26 +242,21 @@ resource "aws_iam_role_policy" "app_pictures" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "QuarantineUploads"
-        Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
-        Resource = "${aws_s3_bucket.pictures.arn}/quarantine/*"
+        Sid    = "UploadsAndPictures"
+        Effect = "Allow"
+        Action = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = [
+          "${aws_s3_bucket.pictures.arn}/quarantine/*",
+          "${aws_s3_bucket.pictures.arn}/pictures/*",
+        ]
       },
       {
-        Sid      = "PublishedPictures"
-        Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
-        Resource = "${aws_s3_bucket.pictures.arn}/pictures/*"
-      },
-      {
-        # Without it, a missing upload reads as AccessDenied instead of NoSuchKey.
-        Sid      = "ListForMissingKeys"
+        # Without it, reading a missing upload fails with AccessDenied instead
+        # of NoSuchKey. GetObject carries no s3:prefix, so this can't be narrowed.
+        Sid      = "ReportMissingKeys"
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
         Resource = aws_s3_bucket.pictures.arn
-        Condition = {
-          StringLike = { "s3:prefix" = ["quarantine/*", "pictures/*"] }
-        }
       }
     ]
   })
