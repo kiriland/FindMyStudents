@@ -5,7 +5,7 @@
 export default function Avatar({ initials, pictureUrl, className }: { initials: string; pictureUrl: string | null; className: string }) {
   return (
     <span className={className} aria-hidden="true">
-      {/* A plain img: signed links change every few minutes, so Next's image optimizer couldn't cache them. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- signed links change every few minutes, so Next's image optimizer couldn't cache them. */}
       {pictureUrl ? <img src={pictureUrl} alt="" /> : initials}
     </span>
   );

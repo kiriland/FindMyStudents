@@ -11,28 +11,26 @@ import styles from "../profile.module.css";
 const SHOWN_RESULTS = 8;
 
 type Search = { status: "idle" } | { status: "loading" } | { status: "error" } | { status: "done"; page: CoursePage };
+// The last fetch's outcome, tagged with the query it answered.
+type Result = { query: string } & ({ status: "error" } | { status: "done"; page: CoursePage });
 
 /** Courses matching `text`, found the same way the dashboard finds them. */
-function useCourseSearch(text: string) {
-  const [search, setSearch] = useState<Search>({ status: "idle" });
+function useCourseSearch(text: string): Search {
+  const [result, setResult] = useState<Result | null>(null);
   const query = text.trim();
 
   useEffect(() => {
-    if (!query) {
-      setSearch({ status: "idle" });
-      return;
-    }
+    if (!query) return;
     const controller = new AbortController();
-    setSearch({ status: "loading" });
     const timeout = window.setTimeout(() => {
       fetch(withQuery("/api/courses", new URLSearchParams({ q: query }).toString()), { signal: controller.signal, cache: "no-store" })
         .then(async (response) => {
           if (!response.ok) throw new Error("Could not load courses.");
           const page: CoursePage = await response.json();
-          if (!controller.signal.aborted) setSearch({ status: "done", page });
+          if (!controller.signal.aborted) setResult({ query, status: "done", page });
         })
         .catch(() => {
-          if (!controller.signal.aborted) setSearch({ status: "error" });
+          if (!controller.signal.aborted) setResult({ query, status: "error" });
         });
     }, 300);
     return () => {
@@ -41,7 +39,10 @@ function useCourseSearch(text: string) {
     };
   }, [query]);
 
-  return search;
+  // Idle and loading follow from the query, so they're derived rather than stored.
+  if (!query) return { status: "idle" };
+  if (result?.query !== query) return { status: "loading" };
+  return result;
 }
 
 /**
