@@ -9,9 +9,10 @@ import { rekognition } from "@/lib/rekognition";
  * review.
  */
 
-const DEFAULT_MIN_CONFIDENCE = 80;
-/** Rekognition's top-level categories. "Swimwear or Underwear" and "Gambling" are allowed. */
-const DEFAULT_BLOCKED_CATEGORIES = [
+/** Labels below this confidence (0–100) never block a picture. */
+const MIN_CONFIDENCE = 80;
+/** Rekognition's top-level categories that block. "Swimwear or Underwear" and "Gambling" are allowed. */
+const BLOCKED_CATEGORIES = new Set([
   "Explicit",
   "Non-Explicit Nudity of Intimate parts and Kissing",
   "Violence",
@@ -20,25 +21,7 @@ const DEFAULT_BLOCKED_CATEGORIES = [
   "Rude Gestures",
   "Drugs & Tobacco",
   "Alcohol",
-];
-
-type ModerationConfig = { minConfidence: number; blockedCategories: Set<string> };
-
-/** The threshold (0–100) and the comma-separated categories, from env, falling back to the defaults. Categories are lowercased. */
-function moderationConfig(): ModerationConfig {
-  const rawMinConfidence = process.env.PICTURE_MODERATION_MIN_CONFIDENCE?.trim();
-  const minConfidence = rawMinConfidence ? Number(rawMinConfidence) : DEFAULT_MIN_CONFIDENCE;
-  if (!Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 100) {
-    throw new Error("PICTURE_MODERATION_MIN_CONFIDENCE must be a number from 0 to 100.");
-  }
-  const categories = (process.env.PICTURE_MODERATION_BLOCKED_CATEGORIES ?? "")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-  // Case is ignored, so a variable typed in another case still blocks.
-  const blocked = categories.length ? categories : DEFAULT_BLOCKED_CATEGORIES;
-  return { minConfidence, blockedCategories: new Set(blocked.map((name) => name.toLowerCase())) };
-}
+]);
 
 /** A label's own name and those of all its ancestors, as far as the response shows them. */
 function lineage(label: ModerationLabel, byName: Map<string, ModerationLabel>) {
@@ -57,7 +40,6 @@ export type ModerationResult = { allowed: true } | { allowed: false; labels: str
 
 /** Checks a picture's bytes, returning the names of the labels that block it, if any. */
 export async function moderatePicture(bytes: Uint8Array): Promise<ModerationResult> {
-  const { minConfidence, blockedCategories } = moderationConfig();
   // Every label is requested, not just those above the threshold, so that each
   // label's parents are in the response and its top-level category is known.
   const { ModerationLabels: labels = [] } = await rekognition.send(new DetectModerationLabelsCommand({
@@ -66,7 +48,7 @@ export async function moderatePicture(bytes: Uint8Array): Promise<ModerationResu
   }));
   const byName = new Map(labels.flatMap((label) => (label.Name ? [[label.Name, label] as const] : [])));
   const blocking = labels.filter((label) =>
-    (label.Confidence ?? 0) >= minConfidence && lineage(label, byName).some((name) => blockedCategories.has(name.toLowerCase())));
+    (label.Confidence ?? 0) >= MIN_CONFIDENCE && lineage(label, byName).some((name) => BLOCKED_CATEGORIES.has(name)));
   if (blocking.length === 0) return { allowed: true };
   return { allowed: false, labels: [...new Set(blocking.map((label) => label.Name!))] };
 }

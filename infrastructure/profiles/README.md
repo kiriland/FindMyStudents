@@ -35,19 +35,17 @@ change the Profile.
 
 The app calls `DetectModerationLabels` on every upload, in the same request that
 publishes it. A picture is blocked when any label has a confidence of at least
-`PICTURE_MODERATION_MIN_CONFIDENCE` (default `80`) and belongs to one of the
-top-level categories in `PICTURE_MODERATION_BLOCKED_CATEGORIES`, a
-comma-separated list matched without regard to case. By default these are Explicit, Non-Explicit Nudity of
-Intimate parts and Kissing, Violence, Visually Disturbing, Hate Symbols, Rude
-Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear" and "Gambling"
-are allowed. There is no face check and no human review.
+80 and belongs to one of these top-level categories: Explicit, Non-Explicit
+Nudity of Intimate parts and Kissing, Violence, Visually Disturbing, Hate
+Symbols, Rude Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear"
+and "Gambling" are allowed. There is no face check and no human review.
 
 The student sees one generic message whichever label matched. Each block is
 logged with the student's ID and the names of the matching labels, never the
 image, so the threshold and categories can be tuned from the logs.
 
-To change either setting, set the GitHub variable of the same name and
-redeploy. Leave a variable unset to keep its default.
+The threshold and categories are constants in
+`features/profiles/moderation.ts`; changing them needs a redeploy.
 
 ## Prerequisites
 
@@ -106,9 +104,6 @@ In **Settings → Secrets and variables → Actions → Variables**, set:
 | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | `user_pool_client_id` |
 | `PROFILES_TABLE_NAME` | `profiles_table_name` |
 | `PROFILE_PICTURES_BUCKET_NAME` | `profile_pictures_bucket_name` |
-
-`PICTURE_MODERATION_MIN_CONFIDENCE` and `PICTURE_MODERATION_BLOCKED_CATEGORIES`
-are optional; see [Picture moderation](#picture-moderation).
 
 For local development, put the same values in `.env.local`. Then redeploy by
 running the deploy workflow from the Actions tab, or by pushing to `main`.
