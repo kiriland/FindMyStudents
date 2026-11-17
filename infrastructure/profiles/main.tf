@@ -233,6 +233,38 @@ resource "aws_s3_bucket_lifecycle_configuration" "pictures" {
   }
 }
 
+# The app's Web Function reads and writes Profiles and Help Offers. Adding and
+# removing Help Offers runs these inside TransactWriteItems, which is
+# authorised per item action and needs no action of its own.
+resource "aws_iam_role_policy" "app_profiles_table" {
+  name = "${var.name}-table"
+  role = local.app_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ProfilesAndHelpOffers"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:Query",
+          "dynamodb:BatchGetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+        ]
+        Resource = aws_dynamodb_table.profiles.arn
+      },
+      {
+        # Course pages list a Course's Volunteers, newest first.
+        Sid      = "CourseVolunteers"
+        Effect   = "Allow"
+        Action   = ["dynamodb:Query"]
+        Resource = "${aws_dynamodb_table.profiles.arn}/index/course-volunteers"
+      }
+    ]
+  })
+}
+
 # The app's Web Function signs upload forms and picture links with its own
 # role, so that role needs the same access the browser is granted. It also
 # moderates each upload with Rekognition before publishing it.

@@ -24,6 +24,7 @@ configure these repository values:
 | Secret | `TURNSTILE_SECRET_KEY` | Private Cloudflare verification key; deployment only |
 | Variable | `DYNAMODB_TABLE_NAME` | `classes` |
 | Variable | `PROFILES_TABLE_NAME` | Profiles table, from the profiles Terraform output |
+| Variable | `PROFILE_PICTURES_BUCKET_NAME` | Profile picture bucket, from the profiles Terraform output |
 | Variable | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Public Cognito pool ID, from the profiles Terraform output |
 | Variable | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Public Cognito app client ID, from the profiles Terraform output |
 | Variable | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare widget key |
@@ -79,7 +80,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Fill in the Cognito pool and client IDs and the profiles table name in `.env.local` and use an authenticated AWS profile. For a named profile, add `AWS_PROFILE=your-profile-name`. Keep credentials out of Git.
+Fill in the Cognito pool and client IDs, the profiles table name and the picture bucket name in `.env.local` and use an authenticated AWS profile. For a named profile, add `AWS_PROFILE=your-profile-name`. Keep credentials out of Git.
 
 ## Profiles and sign-in
 
@@ -94,8 +95,9 @@ Profiles module in `features/profiles/profiles.ts`, never AWS directly. Its
 creates the student's Profile the first time it sees them. Every Profile
 operation takes that Viewer.
 
-The deployed runtime needs `PROFILES_TABLE_NAME` and `dynamodb:GetItem` and
-`dynamodb:PutItem` permission on that table.
+The deployed runtime needs `PROFILES_TABLE_NAME` and
+`PROFILE_PICTURES_BUCKET_NAME`. Terraform grants the app's role access to the
+table, the bucket and Rekognition.
 
 ## Class data
 

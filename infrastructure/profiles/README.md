@@ -78,23 +78,15 @@ terraform -chdir=infrastructure/profiles output
 ```
 
 The plan creates the user pool, the app client, the table with its index, the
-picture bucket and its settings, and the role policy for the bucket and
-Rekognition. On a table that already exists, the plan only adds the index;
+picture bucket and its settings, and the app role's policies for the table,
+the bucket and Rekognition. On a table that already exists, the plan only adds the index;
 DynamoDB fills it from the existing Help Offers in the background.
 The pool and the table have deletion protection turned on.
 
-### 2. Let the app read and write the table
+If you added the table policy to the app role by hand before Terraform managed
+it, delete that inline policy once the apply succeeds.
 
-The Web Function's execution role, `AWS_LAMBDA_EXECUTION_ROLE_ARN`, needs
-`dynamodb:Query`, `dynamodb:BatchGetItem`, `dynamodb:PutItem`,
-`dynamodb:UpdateItem` and `dynamodb:DeleteItem` on the `profiles_table_arn`
-output, and `dynamodb:Query` on `<profiles_table_arn>/index/course-volunteers`
-for course pages. Adding and removing Help Offers runs these inside
-`TransactWriteItems`, which needs no extra action.
-Add these as an inline policy on that role. Later Terraform will manage this
-policy. Terraform already manages the role's access to the picture bucket.
-
-### 3. Switch the Cognito GitHub vars
+### 2. Switch the Cognito GitHub vars
 
 In **Settings → Secrets and variables → Actions → Variables**, set:
 
@@ -115,10 +107,10 @@ Try a few ordinary photos, including a swimwear photo, which should be
 accepted, and sample images from the blocked categories, which should be
 refused while your current picture stays.
 
-For local development, your AWS credentials need the same bucket and
+For local development, your AWS credentials need the same table, bucket and
 Rekognition access as the app's role.
 
-### 4. Retire the old pool
+### 3. Retire the old pool
 
 Once the new pool works in production, delete the old one. Its accounts can't
 sign in to the app any more. In the Cognito console, open the old pool, turn off
