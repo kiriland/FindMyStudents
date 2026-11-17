@@ -1,0 +1,22 @@
+output "aws_region" {
+  value = var.aws_region
+}
+
+output "user_pool_id" {
+  description = "Value for the NEXT_PUBLIC_COGNITO_USER_POOL_ID GitHub variable and .env.local."
+  value       = aws_cognito_user_pool.students.id
+}
+
+output "user_pool_client_id" {
+  description = "Value for the NEXT_PUBLIC_COGNITO_CLIENT_ID GitHub variable and .env.local."
+  value       = aws_cognito_user_pool_client.web.id
+}
+
+output "profiles_table_name" {
+  description = "Value for the PROFILES_TABLE_NAME GitHub variable and .env.local."
+  value       = aws_dynamodb_table.profiles.name
+}
+
+output "profiles_table_arn" {
+  value = aws_dynamodb_table.profiles.arn
+}

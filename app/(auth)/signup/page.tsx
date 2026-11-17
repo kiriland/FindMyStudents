@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import SignUpForm from "@/features/auth/components/SignupForm";
 
-export default function SignUpPage(){
+export default function SignUpPage() {
   return (
-    <SignUpForm />
-  )
+    <Suspense fallback={<p role="status">Loading form...</p>}>
+      <SignUpForm />
+    </Suspense>
+  );
 }

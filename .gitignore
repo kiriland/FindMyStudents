@@ -53,3 +53,11 @@ next-env.d.ts
 /infrastructure/course-importer/*.auto.tfvars
 /infrastructure/course-importer/importer.zip
 /infrastructure/course-importer/crash.log
+
+# Profiles local Terraform state/configuration
+/infrastructure/profiles/.terraform/
+/infrastructure/profiles/*.tfstate*
+/infrastructure/profiles/*.tfplan
+/infrastructure/profiles/terraform.tfvars
+/infrastructure/profiles/*.auto.tfvars
+/infrastructure/profiles/crash.log

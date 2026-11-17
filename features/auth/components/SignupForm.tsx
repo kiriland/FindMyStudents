@@ -2,13 +2,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { signUpWithEmail } from "@/features/auth/auth-client";
+import { keepReturnTo } from "@/features/auth/return-to-browser";
+import { safeReturnTo, withReturnTo } from "@/features/auth/return-to";
 import AuthChallenge, {
   getChallengeToken,
   type TurnstileInstance,
@@ -18,12 +20,16 @@ export default function SignupForm() {
   const challenge = useRef<TurnstileInstance>(null);
   const submitting = useRef(false);
 
+  const [givenName, setGivenName] = useState("");
+  const [familyName, setFamilyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = safeReturnTo(searchParams.get("next"));
 
   async function handleSubmit(
     e: React.SubmitEvent<HTMLFormElement>
@@ -31,6 +37,12 @@ export default function SignupForm() {
     e.preventDefault();
 
     if (submitting.current) return;
+
+    const names = { givenName: givenName.trim(), familyName: familyName.trim() };
+    if (!names.givenName || !names.familyName) {
+      setError(names.givenName ? "Enter your last name." : "Enter your first name.");
+      return;
+    }
 
     submitting.current = true;
     setError("");
@@ -42,15 +54,14 @@ export default function SignupForm() {
       token = getChallengeToken(challenge.current);
 
       const { nextStep } = await signUpWithEmail(
-        email.trim(),
-        password,
+        { email: email.trim(), password, ...names },
         token
       );
 
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
-        router.push("/confirm-signup");
+        router.push(keepReturnTo("/confirm-signup"));
       } else if (nextStep.signUpStep === "DONE") {
-        router.push("/login");
+        router.push(keepReturnTo("/login"));
       } else {
         setError(
           "Additional steps are required to complete registration."
@@ -107,6 +118,38 @@ export default function SignupForm() {
 
       {/* REGISTRATION FIELDS */}
       <div className="space-y-5">
+        <div>
+          <label htmlFor="given-name" className="mb-2 block text-sm font-semibold text-zinc-800">
+            First name
+          </label>
+          <Input
+            id="given-name"
+            type="text"
+            autoComplete="given-name"
+            maxLength={256}
+            value={givenName}
+            onChange={(e) => setGivenName(e.target.value)}
+            required
+            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="family-name" className="mb-2 block text-sm font-semibold text-zinc-800">
+            Last name
+          </label>
+          <Input
+            id="family-name"
+            type="text"
+            autoComplete="family-name"
+            maxLength={256}
+            value={familyName}
+            onChange={(e) => setFamilyName(e.target.value)}
+            required
+            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
+          />
+        </div>
+
         <div>
           <label
             htmlFor="signup-email"
@@ -187,7 +230,7 @@ export default function SignupForm() {
       <p className="mt-7 text-center text-sm text-zinc-600">
         Already have an account?{" "}
         <Link
-          href="/login"
+          href={withReturnTo("/login", returnTo)}
           className="font-semibold text-blue-600 hover:underline"
         >
           Log In

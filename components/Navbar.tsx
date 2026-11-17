@@ -6,6 +6,8 @@ import { signOut } from "aws-amplify/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import AccountMenu from "./AccountMenu";
+import { profileHref } from "@/features/profiles/profile-href";
 import { useAuth } from "@/features/auth/components/AuthProvider";
 
 export default function Navbar() {
@@ -49,9 +51,10 @@ export default function Navbar() {
   const navigationLinks = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
+    ...(account ? [{ href: profileHref(account.userId), label: "Profile" }] : []),
   ];
 
-  const accountEmail = account?.email;
+  const accountEmail = account?.email ?? null;
 
   return (
     <nav
@@ -111,25 +114,13 @@ export default function Navbar() {
               Loading account...
             </span>
           ) : account ? (
-            <>
-              <span
-                className="max-w-40 truncate text-xs text-zinc-600"
-                title={accountEmail ?? undefined}
-              >
-                {accountEmail
-                  ? `Welcome, ${accountEmail}`
-                  : "Signed in"}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
-              >
-                {loggingOut ? "Logging out..." : "Logout"}
-              </button>
-            </>
+            <AccountMenu
+              key={pathname}
+              email={accountEmail}
+              profileHref={profileHref(account.userId)}
+              onLogout={handleLogout}
+              loggingOut={loggingOut}
+            />
           ) : (
             <>
               <Link
@@ -224,22 +215,13 @@ export default function Navbar() {
                 Loading account...
               </p>
             ) : account ? (
-              <>
-                <p className="break-all px-4 py-2 text-sm text-zinc-600">
-                  {accountEmail
-                    ? `Signed in as: ${accountEmail}`
-                    : "Signed in"}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="w-full rounded-xl px-4 py-3 text-left text-base font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
-                >
-                  {loggingOut ? "Logging out..." : "Logout"}
-                </button>
-              </>
+              <AccountMenu
+                email={accountEmail}
+                profileHref={profileHref(account.userId)}
+                onLogout={handleLogout}
+                onProfileClick={closeMenu}
+                loggingOut={loggingOut}
+              />
             ) : (
               <>
                 <Link
