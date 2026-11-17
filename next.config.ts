@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       // CloudFront forwards the Lambda origin's host, not the public one, so
       // without this every Server Action from the site fails the CSRF check.
