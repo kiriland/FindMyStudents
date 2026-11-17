@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
 
@@ -15,22 +15,29 @@ type AuthState = {
   error: string | null;
 };
 
+const initialAuth: AuthState = {
+  account: null,
+  isLoading: true,
+  error: null,
+};
+
+const subscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 const AuthContext = createContext<AuthState | null>(null);
 
 export function useAuth() {
   const auth = useContext(AuthContext);
+  const hydrated = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
   if (!auth) {
     throw new Error("useAuth must be used within AuthProvider.");
   }
-  return auth;
+  return hydrated ? auth : initialAuth;
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({
-    account: null,
-    isLoading: true,
-    error: null,
-  });
+  const [auth, setAuth] = useState<AuthState>(initialAuth);
 
   useEffect(() => {
     let requestId = 0;
