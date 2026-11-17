@@ -22,6 +22,8 @@ variable "app_execution_role_arn" {
   }
 }
 
+# Keep the production origins in step with `serverActions.allowedOrigins` in
+# next.config.ts.
 variable "app_origins" {
   description = "Origins whose pages may upload pictures straight to the bucket."
   type        = list(string)

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveProfile, type ProfileFormState } from "../actions";
 import PictureEditor from "./PictureEditor";
-import { BIO_MAX_LENGTH, bioLength, type ContactField, type Contacts } from "../profile-fields";
+import { BIO_MAX_LENGTH, bioLength, CONTACT_FIELDS, type ContactField, type Contacts } from "../profile-fields";
 import styles from "../profile.module.css";
 
 type OwnProfileProps = {
@@ -61,28 +61,28 @@ export default function OwnProfile({ bio, hasPicture, contacts, children }: OwnP
   );
 }
 
-const CONTACT_INPUTS: { field: ContactField; label: string; hint: string; type: string; autoComplete: string; placeholder: string }[] = [
-  { field: "phone", label: "Phone", hint: "Digits, +, spaces, - and ( ).", type: "tel", autoComplete: "tel", placeholder: "+1 (212) 555-0123" },
-  { field: "discord", label: "Discord username", hint: "2–32 lowercase letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "username" },
-  { field: "instagram", label: "Instagram handle", hint: "Up to 30 letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "handle" },
-];
+type ContactInput = { label: string; hint: string; type: string; autoComplete: string; placeholder: string };
+
+const CONTACT_INPUTS: Record<ContactField, ContactInput> = {
+  phone: { label: "Phone", hint: "Digits, +, spaces, - and ( ).", type: "tel", autoComplete: "tel", placeholder: "+1 (212) 555-0123" },
+  discord: { label: "Discord username", hint: "2–32 lowercase letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "username" },
+  instagram: { label: "Instagram handle", hint: "Up to 30 letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "handle" },
+};
 
 type FormProps = { bio: string; contacts: Contacts; onDone: () => void };
 
 function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
   const [bio, setBio] = useState(savedBio);
   // Controlled, so a rejected save keeps what the student typed.
-  const [contactValues, setContactValues] = useState<Record<ContactField, string>>({
-    phone: contacts.phone ?? "",
-    discord: contacts.discord ?? "",
-    instagram: contacts.instagram ?? "",
-  });
+  const [contactValues, setContactValues] = useState(
+    () => Object.fromEntries(CONTACT_FIELDS.map((field) => [field, contacts[field] ?? ""])) as Record<ContactField, string>,
+  );
   const [state, formAction, isSaving] = useActionState<ProfileFormState, FormData>(saveProfile, { status: "idle" });
 
   // Leave edit mode once the save has committed, together with the refreshed
   // Profile, so the old values never flash back.
   useEffect(() => {
-    if (state.status === "saved") onDone();
+    if (state.status === "done") onDone();
   }, [state, onDone]);
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : {};
   const length = bioLength(bio);
@@ -118,7 +118,8 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
         <p className={styles.hint}>
           Optional. <span className={styles.private}>Only visible to you</span> for now.
         </p>
-        {CONTACT_INPUTS.map(({ field, label, hint, ...input }) => {
+        {CONTACT_FIELDS.map((field) => {
+          const { label, hint, ...input } = CONTACT_INPUTS[field];
           const error = fieldErrors[field];
           return (
             <div key={field} className={styles.field}>

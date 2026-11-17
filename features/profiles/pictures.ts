@@ -5,7 +5,8 @@ import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from "sharp";
 import { s3 } from "@/lib/s3";
-import { PICTURE_MAX_BYTES, type PictureType } from "./profile-fields";
+import { isUuid } from "@/lib/uuid";
+import { PICTURE_MAX_BYTES, type PictureType } from "./picture-rules";
 
 /**
  * Profile picture storage, used only by the Profiles module. Uploads land in
@@ -15,7 +16,6 @@ import { PICTURE_MAX_BYTES, type PictureType } from "./profile-fields";
 
 const QUARANTINE_PREFIX = "quarantine/";
 const PICTURE_PREFIX = "pictures/";
-const UPLOAD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** How long a browser has to start its upload. */
 const UPLOAD_WINDOW_SECONDS = 5 * 60;
@@ -41,16 +41,18 @@ function bucketName() {
   return name;
 }
 
-function quarantineKey(studentId: string, uploadId: string) {
+/** One student's upload waiting in quarantine to be cleaned and published. */
+export type QuarantinedUpload = { studentId: string; uploadId: string };
+
+function quarantineKey({ studentId, uploadId }: QuarantinedUpload) {
   return `${QUARANTINE_PREFIX}${studentId}/${uploadId}`;
 }
 
-export function isUploadId(value: unknown): value is string {
-  return typeof value === "string" && UPLOAD_ID.test(value);
-}
+/** Upload IDs come from `randomUUID()`, so anything else was never issued. */
+export const isUploadId = isUuid;
 
 /** Where a picture is published. Each upload gets a new key, so old links never show a new picture. */
-function pictureKey(studentId: string, uploadId: string) {
+function pictureKey({ studentId, uploadId }: QuarantinedUpload) {
   return `${PICTURE_PREFIX}${studentId}/${uploadId}`;
 }
 
@@ -63,7 +65,7 @@ export async function createUpload(studentId: string, type: PictureType) {
   const uploadId = randomUUID();
   const { url, fields } = await createPresignedPost(s3, {
     Bucket: bucketName(),
-    Key: quarantineKey(studentId, uploadId),
+    Key: quarantineKey({ studentId, uploadId }),
     Fields: { "Content-Type": type },
     Conditions: [
       ["content-length-range", 1, PICTURE_MAX_BYTES],
@@ -75,9 +77,9 @@ export async function createUpload(studentId: string, type: PictureType) {
 }
 
 /** The bytes of an upload, or null when there is none or it is too large. */
-export async function readUpload(studentId: string, uploadId: string) {
+export async function readUpload(upload: QuarantinedUpload) {
   try {
-    const object = await s3.send(new GetObjectCommand({ Bucket: bucketName(), Key: quarantineKey(studentId, uploadId) }));
+    const object = await s3.send(new GetObjectCommand({ Bucket: bucketName(), Key: quarantineKey(upload) }));
     if (!object.Body || (object.ContentLength ?? Infinity) > PICTURE_MAX_BYTES) {
       object.Body?.transformToWebStream().cancel().catch(() => {});
       return null;
@@ -89,8 +91,8 @@ export async function readUpload(studentId: string, uploadId: string) {
   }
 }
 
-export async function deleteUpload(studentId: string, uploadId: string) {
-  await s3.send(new DeleteObjectCommand({ Bucket: bucketName(), Key: quarantineKey(studentId, uploadId) }));
+export async function deleteUpload(upload: QuarantinedUpload) {
+  await s3.send(new DeleteObjectCommand({ Bucket: bucketName(), Key: quarantineKey(upload) }));
 }
 
 /** The real type of a picture, from its first bytes rather than what the browser claimed. */
@@ -129,9 +131,9 @@ export async function cleanPicture(bytes: Uint8Array): Promise<CleanPicture | nu
   }
 }
 
-/** Publishes a cleaned picture under a new key and returns that key. */
-export async function publishPicture(studentId: string, uploadId: string, picture: CleanPicture) {
-  const key = pictureKey(studentId, uploadId);
+/** Publishes an upload's cleaned picture under a new key and returns that key. */
+export async function publishPicture(upload: QuarantinedUpload, picture: CleanPicture) {
+  const key = pictureKey(upload);
   await s3.send(new PutObjectCommand({
     Bucket: bucketName(),
     Key: key,

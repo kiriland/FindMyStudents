@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { confirmPicture, deletePicture, requestPictureUpload } from "../actions";
-import { checkPictureFile, PICTURE_SIZE_ERROR, PICTURE_TYPES } from "../profile-fields";
+import { checkPictureFile, PICTURE_SIZE_ERROR, PICTURE_TYPES } from "../picture-rules";
 import styles from "../profile.module.css";
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "removing" } | { kind: "done"; message: string } | { kind: "error"; message: string };
@@ -28,7 +28,7 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
     setStatus({ kind: "saving" });
     startTransition(async () => {
       const started = await requestPictureUpload(file.type, file.size);
-      if (!started.ok) {
+      if (started.status === "failed") {
         setStatus({ kind: "error", message: started.message });
         return;
       }
@@ -48,7 +48,7 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
         return;
       }
       const confirmed = await confirmPicture(started.upload.uploadId);
-      setStatus(confirmed.ok ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message });
+      setStatus(confirmed.status === "done" ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message });
     });
   }
 
@@ -56,7 +56,7 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
     setStatus({ kind: "removing" });
     startTransition(async () => {
       const result = await deletePicture();
-      setStatus(result.ok ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message });
+      setStatus(result.status === "done" ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message });
     });
   }
 

@@ -1,25 +1,54 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { MAX_HELP_OFFERS } from "./profile-fields";
-import { addHelpOffer, confirmPictureUpload, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type PictureRefusal, type PictureUpload, type ProfileEdit } from "./profiles";
+import { MAX_HELP_OFFERS } from "./help-offers";
+import { CONTACT_FIELDS } from "./profile-fields";
+import { addHelpOffer, confirmPictureUpload, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type HelpOfferRefusal, type PictureRefusal, type PictureUpload, type ProfileEdit, type Viewer } from "./profiles";
+
+/** An action that didn't happen, with a message to show the student. */
+export type ActionFailure = { status: "failed"; message: string };
+
+/** The outcome of changing the Profile: done, or a message to show. */
+export type ChangeResult = { status: "done" } | ActionFailure;
 
 export type ProfileFormState =
   | { status: "idle" }
-  | { status: "saved" }
   | { status: "invalid"; fieldErrors: Partial<Record<keyof ProfileEdit, string>> }
-  | { status: "failed"; message: string };
+  | ChangeResult;
 
-/** The outcome of adding or removing a Help Offer: done, or a message to show. */
-export type HelpOfferState = { ok: true } | { ok: false; message: string };
+export type PictureUploadResult = { status: "ready"; upload: PictureUpload } | ActionFailure;
 
-/** The outcome of a step of changing the picture: done, or a message to show. */
-export type PictureState = { ok: true } | { ok: false; message: string };
-export type PictureUploadState = { ok: true; upload: PictureUpload } | { ok: false; message: string };
+function failed(message: string): ActionFailure {
+  return { status: "failed", message };
+}
 
-const SESSION_ENDED = "Your session has ended. Log in again to make changes.";
+/** Re-renders the Profile in this response, so it shows the change, and reports it done. */
+function changed(): ChangeResult {
+  refresh();
+  return { status: "done" };
+}
 
-function text(formData: FormData, name: string) {
+/**
+ * Runs `act` for the signed-in student. A signed-out caller gets a message to
+ * log in again; if `act` throws, the error is logged as `task` failing and the
+ * student gets `failureMessage`.
+ */
+async function asSignedInStudent<Result>(
+  task: string,
+  failureMessage: string,
+  act: (viewer: Viewer) => Promise<Result>,
+): Promise<Result | ActionFailure> {
+  const viewer = await getViewer();
+  if (!viewer) return failed("Your session has ended. Log in again to make changes.");
+  try {
+    return await act(viewer);
+  } catch (error) {
+    console.error(`${task} failed`, { studentId: viewer.studentId, error });
+    return failed(failureMessage);
+  }
+}
+
+function formText(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";
 }
@@ -29,118 +58,84 @@ function text(formData: FormData, name: string) {
  * is always the Viewer's: the form never says whose Profile to change.
  */
 export async function saveProfile(_previous: ProfileFormState, formData: FormData): Promise<ProfileFormState> {
-  const viewer = await getViewer();
-  if (!viewer) return { status: "failed", message: SESSION_ENDED };
-
-  try {
-    const result = await updateProfile(viewer, {
-      bio: text(formData, "bio"),
-      phone: text(formData, "phone"),
-      discord: text(formData, "discord"),
-      instagram: text(formData, "instagram"),
-    });
+  const edit = {
+    bio: formText(formData, "bio"),
+    ...Object.fromEntries(CONTACT_FIELDS.map((field) => [field, formText(formData, field)])),
+  } as ProfileEdit;
+  return asSignedInStudent("Saving a Profile", "Your profile could not be saved. Please try again.", async (viewer) => {
+    const result = await updateProfile(viewer, edit);
     if (!result.ok) return { status: "invalid", fieldErrors: result.fieldErrors };
-  } catch (error) {
-    console.error("Saving a Profile failed", { studentId: viewer.studentId, error });
-    return { status: "failed", message: "Your profile could not be saved. Please try again." };
-  }
-  // Re-render the Profile in this response, so it shows what was saved.
-  refresh();
-  return { status: "saved" };
+    return changed();
+  });
 }
+
+const NO_PROFILE = "Your profile isn’t set up yet. Reload the page and try again.";
+
+const HELP_OFFER_REFUSALS: Record<HelpOfferRefusal, string> = {
+  limit: `You can offer help with up to ${MAX_HELP_OFFERS} courses. Remove one to add another.`,
+  "unknown-course": "That course is no longer in the catalogue.",
+  "no-profile": NO_PROFILE,
+};
 
 // Anyone can call a server action with any arguments.
 function isCourseCode(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 40;
 }
 
-const REFUSALS = {
-  limit: `You can offer help with up to ${MAX_HELP_OFFERS} courses. Remove one to add another.`,
-  "unknown-course": "That course is no longer in the catalogue.",
-  "no-profile": "Your profile isn’t set up yet. Reload the page and try again.",
-} as const;
-
 /** Adds a Help Offer for a Course to the signed-in student's own Profile. */
-export async function offerHelp(courseCode: string): Promise<HelpOfferState> {
-  if (!isCourseCode(courseCode)) return { ok: false, message: REFUSALS["unknown-course"] };
-  const viewer = await getViewer();
-  if (!viewer) return { ok: false, message: SESSION_ENDED };
-  try {
+export async function offerHelp(courseCode: string): Promise<ChangeResult> {
+  if (!isCourseCode(courseCode)) return failed(HELP_OFFER_REFUSALS["unknown-course"]);
+  return asSignedInStudent("Adding a Help Offer", "That course could not be added. Please try again.", async (viewer) => {
     const result = await addHelpOffer(viewer, courseCode);
-    if (!result.ok) return { ok: false, message: REFUSALS[result.reason] };
-  } catch (error) {
-    console.error("Adding a Help Offer failed", { studentId: viewer.studentId, error });
-    return { ok: false, message: "That course could not be added. Please try again." };
-  }
-  refresh();
-  return { ok: true };
+    if (!result.ok) return failed(HELP_OFFER_REFUSALS[result.reason]);
+    return changed();
+  });
 }
 
 /** Removes a Help Offer from the signed-in student's own Profile. */
-export async function withdrawHelp(courseCode: string): Promise<HelpOfferState> {
-  if (!isCourseCode(courseCode)) return { ok: true };
-  const viewer = await getViewer();
-  if (!viewer) return { ok: false, message: SESSION_ENDED };
-  try {
+export async function withdrawHelp(courseCode: string): Promise<ChangeResult> {
+  // No such Course can be on the Profile, so there is nothing to remove.
+  if (!isCourseCode(courseCode)) return { status: "done" };
+  return asSignedInStudent("Removing a Help Offer", "That course could not be removed. Please try again.", async (viewer) => {
     await removeHelpOffer(viewer, courseCode);
-  } catch (error) {
-    console.error("Removing a Help Offer failed", { studentId: viewer.studentId, error });
-    return { ok: false, message: "That course could not be removed. Please try again." };
-  }
-  refresh();
-  return { ok: true };
+    return changed();
+  });
 }
 
 const PICTURE_FAILED = "Your picture could not be saved. Please try again.";
-// The same for every block, so it never says which labels matched.
-const PICTURE_BLOCKED = "This picture can’t be used as a profile picture. Please choose another.";
+
+const PICTURE_REFUSALS: Record<Exclude<PictureRefusal["reason"], "invalid-file">, string> = {
+  // The same for every block, so it never says which labels matched.
+  blocked: "This picture can’t be used as a profile picture. Please choose another.",
+  "missing-upload": "Your upload didn’t arrive. Please choose the picture again.",
+  "no-profile": NO_PROFILE,
+};
 
 function pictureRefusal(refusal: PictureRefusal) {
-  if (refusal.reason === "invalid-file") return refusal.message;
-  if (refusal.reason === "no-profile") return REFUSALS["no-profile"];
-  if (refusal.reason === "blocked") return PICTURE_BLOCKED;
-  return "Your upload didn’t arrive. Please choose the picture again.";
+  return failed(refusal.reason === "invalid-file" ? refusal.message : PICTURE_REFUSALS[refusal.reason]);
 }
 
 /** Lets the signed-in student upload a picture of `type` and `size` bytes, for `confirmPicture` to publish. */
-export async function requestPictureUpload(type: unknown, size: unknown): Promise<PictureUploadState> {
-  const viewer = await getViewer();
-  if (!viewer) return { ok: false, message: SESSION_ENDED };
-  try {
+export async function requestPictureUpload(type: unknown, size: unknown): Promise<PictureUploadResult> {
+  return asSignedInStudent("Starting a picture upload", PICTURE_FAILED, async (viewer) => {
     const result = await startPictureUpload(viewer, typeof type === "string" ? type : "", typeof size === "number" ? size : 0);
-    if (!result.ok) return { ok: false, message: pictureRefusal(result.refusal) };
-    return { ok: true, upload: result.upload };
-  } catch (error) {
-    console.error("Starting a picture upload failed", { studentId: viewer.studentId, error });
-    return { ok: false, message: PICTURE_FAILED };
-  }
+    // Nothing on the Profile has changed yet, so there is nothing to refresh.
+    return result.ok ? { status: "ready", upload: result.upload } : pictureRefusal(result.refusal);
+  });
 }
 
 /** Publishes the signed-in student's uploaded picture on their own Profile. */
-export async function confirmPicture(uploadId: unknown): Promise<PictureState> {
-  const viewer = await getViewer();
-  if (!viewer) return { ok: false, message: SESSION_ENDED };
-  try {
+export async function confirmPicture(uploadId: unknown): Promise<ChangeResult> {
+  return asSignedInStudent("Publishing a picture", PICTURE_FAILED, async (viewer) => {
     const result = await confirmPictureUpload(viewer, typeof uploadId === "string" ? uploadId : "");
-    if (!result.ok) return { ok: false, message: pictureRefusal(result.refusal) };
-  } catch (error) {
-    console.error("Publishing a picture failed", { studentId: viewer.studentId, error });
-    return { ok: false, message: PICTURE_FAILED };
-  }
-  refresh();
-  return { ok: true };
+    return result.ok ? changed() : pictureRefusal(result.refusal);
+  });
 }
 
 /** Removes the signed-in student's picture from their own Profile. */
-export async function deletePicture(): Promise<PictureState> {
-  const viewer = await getViewer();
-  if (!viewer) return { ok: false, message: SESSION_ENDED };
-  try {
+export async function deletePicture(): Promise<ChangeResult> {
+  return asSignedInStudent("Removing a picture", "Your picture could not be removed. Please try again.", async (viewer) => {
     await removePicture(viewer);
-  } catch (error) {
-    console.error("Removing a picture failed", { studentId: viewer.studentId, error });
-    return { ok: false, message: "Your picture could not be removed. Please try again." };
-  }
-  refresh();
-  return { ok: true };
+    return changed();
+  });
 }

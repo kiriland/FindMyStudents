@@ -3,8 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { courseCodeKey, withQuery, type CoursePage, type CourseSummary } from "@/features/dashboard/course-model";
-import { offerHelp, withdrawHelp, type HelpOfferState } from "../actions";
-import { MAX_HELP_OFFERS } from "../profile-fields";
+import { offerHelp, withdrawHelp, type ChangeResult } from "../actions";
+import { MAX_HELP_OFFERS } from "../help-offers";
 import type { HelpOfferView } from "../profiles";
 import styles from "../profile.module.css";
 
@@ -59,12 +59,12 @@ export default function HelpOfferEditor({ offers }: { offers: HelpOfferView[] })
   const offered = new Set(offers.map((offer) => courseCodeKey(offer.courseCode)));
   const atLimit = offers.length >= MAX_HELP_OFFERS;
 
-  function run(courseCode: string, action: (courseCode: string) => Promise<HelpOfferState>) {
+  function changeHelpOffer(courseCode: string, change: (courseCode: string) => Promise<ChangeResult>) {
     setBusyCode(courseCode);
     setMessage("");
     startTransition(async () => {
-      const result = await action(courseCode);
-      if (!result.ok) setMessage(result.message);
+      const result = await change(courseCode);
+      if (result.status === "failed") setMessage(result.message);
       setBusyCode(null);
     });
   }
@@ -86,7 +86,7 @@ export default function HelpOfferEditor({ offers }: { offers: HelpOfferView[] })
                 className={styles.chipRemove}
                 aria-label={`Remove ${offer.courseCode}`}
                 disabled={isPending}
-                onClick={() => run(offer.courseCode, withdrawHelp)}
+                onClick={() => changeHelpOffer(offer.courseCode, withdrawHelp)}
               >
                 {busyCode === offer.courseCode ? "…" : "×"}
               </button>
@@ -117,7 +117,7 @@ export default function HelpOfferEditor({ offers }: { offers: HelpOfferView[] })
         />
       </div>
       <CourseResults search={search} offered={offered} atLimit={atLimit} isPending={isPending} busyCode={busyCode}
-        onAdd={(course) => run(course.courseCode, offerHelp)} />
+        onAdd={(course) => changeHelpOffer(course.courseCode, offerHelp)} />
     </section>
   );
 }

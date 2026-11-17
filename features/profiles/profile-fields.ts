@@ -1,6 +1,7 @@
 /**
- * Rules for the Profile fields a student edits. Shared by the server, which
- * enforces them, and the edit form, which shows them as the student types.
+ * Rules for the Profile text fields a student edits: the bio and contact
+ * details. Shared by the server, which enforces them, and the edit form, which
+ * shows them as the student types.
  */
 
 export const BIO_MAX_LENGTH = 1000;
@@ -27,9 +28,9 @@ export function parseBio(raw: string): FieldResult<string> {
 }
 
 /** The contact details a student may add. Each is optional and owner-only for now. */
-export type ContactField = "phone" | "discord" | "instagram";
+export const CONTACT_FIELDS = ["phone", "discord", "instagram"] as const;
+export type ContactField = (typeof CONTACT_FIELDS)[number];
 export type Contacts = Partial<Record<ContactField, string>>;
-export const CONTACT_FIELDS: readonly ContactField[] = ["phone", "discord", "instagram"];
 
 /** A handle as typed, without outer whitespace or one leading `@`. */
 function withoutAt(raw: string) {
@@ -65,42 +66,4 @@ const contactRules: Record<ContactField, (raw: string) => FieldResult<string>> =
 /** Checks one contact field. An empty value is valid and means "none". */
 export function parseContact(field: ContactField, raw: string): FieldResult<string> {
   return contactRules[field](raw);
-}
-
-/** A phone number as a `tel:` link target: only digits and a leading `+`. */
-export function phoneHref(phone: string) {
-  return `tel:${phone.trim().startsWith("+") ? "+" : ""}${phone.replace(/\D/g, "")}`;
-}
-
-export function instagramHref(handle: string) {
-  return `https://instagram.com/${encodeURIComponent(handle)}`;
-}
-
-/** The most Help Offers one student may have at a time. */
-export const MAX_HELP_OFFERS = 15;
-
-/** The largest profile picture a student may upload. */
-export const PICTURE_MAX_BYTES = 5 * 1024 * 1024;
-
-/** The picture formats a student may upload, as their MIME types. */
-export const PICTURE_TYPES = ["image/jpeg", "image/png"] as const;
-export type PictureType = (typeof PICTURE_TYPES)[number];
-
-export function isPictureType(type: unknown): type is PictureType {
-  return PICTURE_TYPES.includes(type as PictureType);
-}
-
-export const PICTURE_TYPE_ERROR = "Choose a JPEG or PNG image. Other formats, including WebP, aren’t supported.";
-export const PICTURE_SIZE_ERROR = "Choose an image of 5 MB or smaller.";
-export const PICTURE_CONTENT_ERROR = "That file isn’t a valid JPEG or PNG image. Choose another picture.";
-
-/**
- * Checks a picture's declared type and size before it is uploaded. The server
- * checks the bytes themselves again once they arrive.
- */
-export function checkPictureFile(type: string, size: number): FieldResult<PictureType> {
-  if (!isPictureType(type)) return { ok: false, error: PICTURE_TYPE_ERROR };
-  if (!Number.isSafeInteger(size) || size <= 0) return { ok: false, error: PICTURE_CONTENT_ERROR };
-  if (size > PICTURE_MAX_BYTES) return { ok: false, error: PICTURE_SIZE_ERROR };
-  return { ok: true, value: type };
 }

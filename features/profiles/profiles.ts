@@ -3,13 +3,16 @@ import { cache } from "react";
 import { ConditionalCheckFailedException, TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, type BatchGetCommandOutput, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import { db } from "@/lib/dynamodb";
+import { isUuid } from "@/lib/uuid";
 import { getSignedInStudent, type SignedInStudent } from "@/features/auth/server-session";
 import { getCourse } from "@/features/dashboard/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/dashboard/course-model";
 import { profileHref } from "./profile-href";
-import { checkPictureFile, CONTACT_FIELDS, PICTURE_CONTENT_ERROR, MAX_HELP_OFFERS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
+import { CONTACT_FIELDS, parseBio, parseContact, type ContactField, type Contacts } from "./profile-fields";
+import { MAX_HELP_OFFERS } from "./help-offers";
+import { checkPictureFile, PICTURE_CONTENT_ERROR } from "./picture-rules";
 import { moderatePicture } from "./moderation";
-import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload } from "./pictures";
+import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
 
 /**
  * The signed-in student a Profile operation acts for. Signed-out visitors have
@@ -77,9 +80,6 @@ export type ProfileUpdate<Field extends string> =
   | { ok: true }
   | { ok: false; fieldErrors: Partial<Record<Field, string>> };
 
-// Cognito user IDs (`sub`) are UUIDs.
-const STUDENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
 // Profiles this server instance has already created or found.
 const knownProfiles = new Set<string>();
 
@@ -95,16 +95,20 @@ function profileKey(studentId: string) {
 
 const HELP_OFFER_PREFIX = "OFFER#";
 
-function helpOfferKey(studentId: string, courseKey: string) {
-  return { pk: `STUDENT#${studentId}`, sk: `${HELP_OFFER_PREFIX}${courseKey}` };
+/** A Help Offer's key. `normalizedCode` is a course code as `courseCodeKey` normalises it, e.g. "ACC2101". */
+function helpOfferKey(studentId: string, normalizedCode: string) {
+  return { pk: `STUDENT#${studentId}`, sk: `${HELP_OFFER_PREFIX}${normalizedCode}` };
 }
 
-/** Groups a Course's Help Offers, for its Volunteers newest first. */
-function courseVolunteersKey(courseKey: string) {
-  return `COURSE#${SCHOOL.slug}#${courseKey}`;
+/**
+ * The value a Help Offer stores in its `courseKey` attribute, which groups a
+ * Course's Help Offers in the course-volunteers index.
+ */
+function courseVolunteersKey(normalizedCode: string) {
+  return `COURSE#${SCHOOL.slug}#${normalizedCode}`;
 }
 
-/** The index of Help Offers by `courseVolunteersKey`, sorted by `createdAt`. */
+/** The index of Help Offers by their `courseKey` attribute, sorted by `createdAt`. */
 const COURSE_VOLUNTEERS_INDEX = "course-volunteers";
 
 const BIO_EXCERPT_LENGTH = 140;
@@ -177,7 +181,8 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 // some viewers may see are decided here from `viewer`, and are never even read
 // for anyone else.
 export async function getProfile(viewer: Viewer, studentId: string): Promise<ProfileView | null> {
-  if (!STUDENT_ID.test(studentId)) return null;
+  // Student IDs are Cognito user IDs (`sub`), which are UUIDs.
+  if (!isUuid(studentId)) return null;
   const isOwner = viewer.studentId === studentId;
   const fields = ["sk", "givenName", "familyName", "bio", "pictureKey", "courseCode", "courseTitle", "createdAt", ...(isOwner ? CONTACT_FIELDS : [])];
   // The Profile and its Help Offers share a partition, so one query reads them all.
@@ -260,7 +265,7 @@ function conditionFailed(error: unknown, index: number) {
 export async function addHelpOffer(viewer: Viewer, courseCode: string): Promise<{ ok: true } | { ok: false; reason: HelpOfferRefusal }> {
   const course = await getCourse(SCHOOL.slug, courseCode);
   if (!course) return { ok: false, reason: "unknown-course" };
-  const courseKey = courseCodeKey(course.courseCode);
+  const normalizedCode = courseCodeKey(course.courseCode);
   try {
     await db.send(new TransactWriteCommand({
       TransactItems: [
@@ -268,12 +273,12 @@ export async function addHelpOffer(viewer: Viewer, courseCode: string): Promise<
           Put: {
             TableName: tableName(),
             Item: {
-              ...helpOfferKey(viewer.studentId, courseKey),
+              ...helpOfferKey(viewer.studentId, normalizedCode),
               studentId: viewer.studentId,
               school: course.school,
               courseCode: course.courseCode,
               courseTitle: course.title,
-              courseKey: courseVolunteersKey(courseKey),
+              courseKey: courseVolunteersKey(normalizedCode),
               createdAt: new Date().toISOString(),
             },
             ConditionExpression: "attribute_not_exists(pk)",
@@ -305,15 +310,16 @@ export async function addHelpOffer(viewer: Viewer, courseCode: string): Promise<
 
 /** Withdraws the Viewer's Help Offer for a Course. Removing one they don't have does nothing. */
 export async function removeHelpOffer(viewer: Viewer, courseCode: string): Promise<void> {
-  const courseKey = courseCodeKey(courseCode);
-  if (!courseKey) return;
+  const normalizedCode = courseCodeKey(courseCode);
+  if (!normalizedCode) return;
+  const offerKey = helpOfferKey(viewer.studentId, normalizedCode);
   try {
     await db.send(new TransactWriteCommand({
       TransactItems: [
         {
           Delete: {
             TableName: tableName(),
-            Key: helpOfferKey(viewer.studentId, courseKey),
+            Key: offerKey,
             ConditionExpression: "attribute_exists(pk)",
           },
         },
@@ -390,13 +396,13 @@ function bioExcerpt(bio: string) {
  * or pictures are read for them at all.
  */
 export async function getCourseVolunteers(viewer: Viewer | null, courseCode: string): Promise<CourseVolunteers> {
-  const courseKey = courseCodeKey(courseCode);
-  if (!courseKey) return viewer ? { visibility: "cards", cards: [] } : { visibility: "count", count: 0 };
+  const normalizedCode = courseCodeKey(courseCode);
+  if (!normalizedCode) return viewer ? { visibility: "cards", cards: [] } : { visibility: "count", count: 0 };
   const query: QueryCommandInput = {
     TableName: tableName(),
     IndexName: COURSE_VOLUNTEERS_INDEX,
     KeyConditionExpression: "courseKey = :courseKey",
-    ExpressionAttributeValues: { ":courseKey": courseVolunteersKey(courseKey) },
+    ExpressionAttributeValues: { ":courseKey": courseVolunteersKey(normalizedCode) },
   };
   if (!viewer) {
     const { count } = await queryAll({ ...query, Select: "COUNT" });
@@ -433,7 +439,8 @@ export async function startPictureUpload(viewer: Viewer, type: string, size: num
  */
 export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Promise<{ ok: true } | { ok: false; refusal: PictureRefusal }> {
   if (!isUploadId(uploadId)) return { ok: false, refusal: { reason: "missing-upload" } };
-  const bytes = await readUpload(viewer.studentId, uploadId);
+  const upload: QuarantinedUpload = { studentId: viewer.studentId, uploadId };
+  const bytes = await readUpload(upload);
   if (!bytes) return { ok: false, refusal: { reason: "missing-upload" } };
   try {
     const picture = await cleanPicture(bytes);
@@ -446,7 +453,7 @@ export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Pr
       console.warn("A picture was blocked by moderation", { studentId: viewer.studentId, labels: moderation.labels });
       return { ok: false, refusal: { reason: "blocked" } };
     }
-    const key = await publishPicture(viewer.studentId, uploadId, picture);
+    const key = await publishPicture(upload, picture);
     let previous: unknown;
     try {
       const { Attributes } = await db.send(new UpdateCommand({
@@ -468,7 +475,7 @@ export async function confirmPictureUpload(viewer: Viewer, uploadId: string): Pr
     return { ok: true };
   } finally {
     // The lifecycle rule removes it within a day if this fails.
-    await deleteUpload(viewer.studentId, uploadId).catch((error) => {
+    await deleteUpload(upload).catch((error) => {
       console.error("Deleting a quarantined upload failed", { studentId: viewer.studentId, uploadId, error });
     });
   }
