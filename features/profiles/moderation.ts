@@ -24,18 +24,20 @@ const DEFAULT_BLOCKED_CATEGORIES = [
 
 type ModerationConfig = { minConfidence: number; blockedCategories: Set<string> };
 
-/** The threshold (0–100) and the comma-separated categories, from env, falling back to the defaults. */
+/** The threshold (0–100) and the comma-separated categories, from env, falling back to the defaults. Categories are lowercased. */
 function moderationConfig(): ModerationConfig {
-  const threshold = process.env.PICTURE_MODERATION_MIN_CONFIDENCE?.trim();
-  const minConfidence = threshold ? Number(threshold) : DEFAULT_MIN_CONFIDENCE;
+  const rawMinConfidence = process.env.PICTURE_MODERATION_MIN_CONFIDENCE?.trim();
+  const minConfidence = rawMinConfidence ? Number(rawMinConfidence) : DEFAULT_MIN_CONFIDENCE;
   if (!Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 100) {
     throw new Error("PICTURE_MODERATION_MIN_CONFIDENCE must be a number from 0 to 100.");
   }
-  const categories = process.env.PICTURE_MODERATION_BLOCKED_CATEGORIES?.split(",").map((name) => name.trim()).filter(Boolean);
-  return {
-    minConfidence,
-    blockedCategories: new Set(categories?.length ? categories : DEFAULT_BLOCKED_CATEGORIES),
-  };
+  const categories = (process.env.PICTURE_MODERATION_BLOCKED_CATEGORIES ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  // Case is ignored, so a variable typed in another case still blocks.
+  const blocked = categories.length ? categories : DEFAULT_BLOCKED_CATEGORIES;
+  return { minConfidence, blockedCategories: new Set(blocked.map((name) => name.toLowerCase())) };
 }
 
 /** A label's own name and those of all its ancestors, as far as the response shows them. */
@@ -64,7 +66,7 @@ export async function moderatePicture(bytes: Uint8Array): Promise<ModerationResu
   }));
   const byName = new Map(labels.flatMap((label) => (label.Name ? [[label.Name, label] as const] : [])));
   const blocking = labels.filter((label) =>
-    (label.Confidence ?? 0) >= minConfidence && lineage(label, byName).some((name) => blockedCategories.has(name)));
+    (label.Confidence ?? 0) >= minConfidence && lineage(label, byName).some((name) => blockedCategories.has(name.toLowerCase())));
   if (blocking.length === 0) return { allowed: true };
   return { allowed: false, labels: [...new Set(blocking.map((label) => label.Name!))] };
 }

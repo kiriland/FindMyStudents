@@ -37,10 +37,10 @@ The app calls `DetectModerationLabels` on every upload, in the same request that
 publishes it. A picture is blocked when any label has a confidence of at least
 `PICTURE_MODERATION_MIN_CONFIDENCE` (default `80`) and belongs to one of the
 top-level categories in `PICTURE_MODERATION_BLOCKED_CATEGORIES`, a
-comma-separated list. By default these are Explicit, Non-Explicit Nudity of
+comma-separated list matched without regard to case. By default these are Explicit, Non-Explicit Nudity of
 Intimate parts and Kissing, Violence, Visually Disturbing, Hate Symbols, Rude
-Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear" and Gambling are
-allowed. There is no face check and no human review.
+Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear" and "Gambling"
+are allowed. There is no face check and no human review.
 
 The student sees one generic message whichever label matched. Each block is
 logged with the student's ID and the names of the matching labels, never the
@@ -81,9 +81,8 @@ terraform -chdir=infrastructure/profiles output
 
 The plan creates the user pool, the app client, the table with its index, the
 picture bucket and its settings, and the role policy for the bucket and
-Rekognition. On a table
-that already exists, the plan only adds the index; DynamoDB fills it from the
-existing Help Offers in the background.
+Rekognition. On a table that already exists, the plan only adds the index;
+DynamoDB fills it from the existing Help Offers in the background.
 The pool and the table have deletion protection turned on.
 
 ### 2. Let the app read and write the table

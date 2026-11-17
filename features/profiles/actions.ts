@@ -92,12 +92,13 @@ export async function withdrawHelp(courseCode: string): Promise<HelpOfferState> 
 }
 
 const PICTURE_FAILED = "Your picture could not be saved. Please try again.";
+// The same for every block, so it never says which labels matched.
+const PICTURE_BLOCKED = "This picture can’t be used as a profile picture. Please choose another.";
 
 function pictureRefusal(refusal: PictureRefusal) {
   if (refusal.reason === "invalid-file") return refusal.message;
   if (refusal.reason === "no-profile") return REFUSALS["no-profile"];
-  // The same for every block, so it never says which labels matched.
-  if (refusal.reason === "blocked") return "This picture can’t be used as a profile picture. Please choose another.";
+  if (refusal.reason === "blocked") return PICTURE_BLOCKED;
   return "Your upload didn’t arrive. Please choose the picture again.";
 }
 
