@@ -7,9 +7,10 @@ import ContactDetails from "./ContactDetails";
 import HelpOfferEditor from "./HelpOfferEditor";
 import HelpOffers from "./HelpOffers";
 import OwnProfile from "./OwnProfile";
-import styles from "../profile.module.css";
+import { ID_CARD, PROFILE_GRID, SECTION_TITLE } from "./profile-styles";
 
 export type ProfileParams = Promise<{ id: string }>;
+
 
 export default async function ProfileContent({ params }: { params: ProfileParams }) {
   const { id } = await params;
@@ -17,35 +18,64 @@ export default async function ProfileContent({ params }: { params: ProfileParams
   if (!viewer) redirect(loginHref(profileHref(id)));
   const profile = await getProfile(viewer, id);
   if (!profile) notFound();
+
+  const identity = <Identity profile={profile} />;
   return (
-    <article aria-labelledby="profile-name">
-      <header className={styles.header}>
-        <Avatar size="large" initials={profile.initials} pictureUrl={profile.pictureUrl} />
-        <h1 id="profile-name" className={styles.name}>{profile.displayName}</h1>
-      </header>
+    <article aria-labelledby="profile-name" className={PROFILE_GRID}>
       {profile.isOwner ? (
-        <>
-          <OwnProfile bio={profile.bio} hasPicture={profile.pictureUrl !== null} contacts={profile.contacts}>
-            <ProfileDetails profile={profile} />
-            <ContactDetails contacts={profile.contacts} />
-          </OwnProfile>
+        <OwnProfile
+          bio={profile.bio}
+          hasPicture={profile.pictureUrl !== null}
+          pictureUrl={profile.pictureUrl}
+          initials={profile.initials}
+          contacts={profile.contacts}
+          identity={identity}
+          contactDetails={<ContactDetails contacts={profile.contacts} />}
+          about={<ProfileDetails profile={profile} />}
+        >
           {/* Always editable, outside edit mode: it's what students change most. */}
           <HelpOfferEditor offers={profile.helpOffers} />
-        </>
+        </OwnProfile>
       ) : (
         <>
-          <ProfileDetails profile={profile} />
-          <HelpOffers offers={profile.helpOffers} />
+          <aside aria-label="Student" className={ID_CARD}>{identity}</aside>
+          <div className="flex min-w-0 animate-fade-up flex-col gap-11">
+            <ProfileDetails profile={profile} />
+            <HelpOffers offers={profile.helpOffers} />
+          </div>
         </>
       )}
     </article>
   );
 }
 
+function Identity({ profile }: { profile: ProfileView }) {
+  const count = profile.helpOffers.length;
+  return (
+    <>
+      <Avatar size="large" initials={profile.initials} pictureUrl={profile.pictureUrl} />
+      <div>
+        <h1 id="profile-name" className="font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] [overflow-wrap:anywhere]">
+          {profile.displayName}
+        </h1>
+        <p className="mt-1.5 text-muted">
+          {count ? `Offers help with ${count} ${count === 1 ? "course" : "courses"}` : "No Help Offers yet"}
+        </p>
+      </div>
+    </>
+  );
+}
+
 function ProfileDetails({ profile }: { profile: ProfileView }) {
-  if (profile.bio) {
-    // Rendered as text, so markup and links in a bio stay inert.
-    return <p className={styles.bio}>{profile.bio}</p>;
-  }
-  return profile.isOwner ? <p className={styles.status}>You haven’t written a bio yet.</p> : null;
+  return (
+    <section aria-labelledby="profile-about">
+      <h2 id="profile-about" className={SECTION_TITLE}>About</h2>
+      {profile.bio ? (
+        // Rendered as text, so markup and links in a bio stay inert.
+        <p className="mt-3.5 max-w-[62ch] text-lg leading-[1.7] whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">{profile.bio}</p>
+      ) : (
+        <p className="mt-3.5 text-subtle">{profile.isOwner ? "You haven’t written a bio yet." : "No bio yet."}</p>
+      )}
+    </section>
+  );
 }

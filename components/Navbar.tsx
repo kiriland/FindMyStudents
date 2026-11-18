@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { signOut } from "aws-amplify/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/features/auth/useAuth";
 import { profileHref } from "@/features/profiles/profile-model";
+import { DISCOVERY_PATH } from "@/features/courses/course-model";
+import Logo from "@/components/ui/Logo";
+import { buttonClass } from "@/components/ui/button";
+import { CloseIcon, MenuIcon } from "@/components/ui/icons";
 import AccountMenu from "./AccountMenu";
+
+// The bar turns solid once the page scrolls under it. The server and hydration
+// render it at the top of the page.
+function subscribeToScroll(onChange: () => void) {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+}
+const isScrolled = () => window.scrollY > 8;
+const atTop = () => false;
+
+const LINK =
+  "rounded-lg px-3 py-[9px] font-display text-[15px] leading-none font-medium transition-colors duration-150";
 
 export default function Navbar() {
   const { account, isLoading, error } = useAuth();
@@ -15,6 +30,9 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const scrolled = useSyncExternalStore(subscribeToScroll, isScrolled, atTop);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const header = useRef<HTMLElement>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -28,6 +46,25 @@ export default function Navbar() {
   function closeMenu() {
     setMenuOpen(false);
   }
+
+  // Esc closes the mobile menu and returns focus to its button; so does a tap outside it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButton.current?.focus();
+    }
+    function handlePointerDown(event: PointerEvent) {
+      if (!header.current?.contains(event.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [menuOpen]);
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -48,70 +85,45 @@ export default function Navbar() {
     }
   }
 
+  const coursesActive = pathname === DISCOVERY_PATH || pathname.startsWith("/courses/");
   const navigationLinks = [
-    { href: "/", label: "Home" },
-    { href: "/dashboard", label: "Dashboard" },
-    ...(account ? [{ href: profileHref(account.userId), label: "Profile" }] : []),
+    { href: DISCOVERY_PATH, label: "Courses", current: coursesActive },
+    { href: "/#how", label: "How it works", current: false },
+    { href: "/#faq", label: "Questions", current: false },
   ];
-
-  const accountEmail = account?.email;
+  const ownProfile = account ? profileHref(account.userId) : null;
+  const solid = scrolled || menuOpen;
 
   return (
-    <nav
-      aria-label="Main navigation"
-      className="relative z-50 w-full border-b border-zinc-200 bg-white text-zinc-900"
+    <header
+      ref={header}
+      className={`sticky top-0 z-40 w-full transition-[background-color,box-shadow] duration-250 ${
+        solid
+          ? "bg-surface/90 shadow-[0_1px_0_var(--color-line)] backdrop-blur-[14px] backdrop-saturate-[1.4]"
+          : "bg-canvas"
+      }`}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-10">
+      <nav aria-label="Main" className="wrap flex h-[68px] items-center gap-3">
+        <Logo onClick={closeMenu} />
 
-        {/* BRANDING */}
-        <Link
-          href="/"
-          onClick={closeMenu}
-          className="flex min-w-0 items-center gap-2 sm:gap-3"
-        >
-          <Image
-            src="/favicon.ico"
-            alt="FindMyStudents logo"
-            width={44}
-            height={44}
-            unoptimized
-            priority
-            className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
-          />
-
-          <div className="flex min-w-0 flex-col">
-            <span className="text-base font-bold tracking-tight text-zinc-900 sm:text-lg">
-              FindMyStudents
-            </span>
-
-            <span className="text-[10px] font-medium text-zinc-500 sm:text-xs">
-              Baruch College Community
-            </span>
-          </div>
-        </Link>
-
-        {/* DESKTOP NAVIGATION */}
-        <div className="hidden items-center gap-2 md:flex">
+        <ul className="ml-7 hidden items-center gap-0.5 md:flex">
           {navigationLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                pathname === item.href
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-blue-600"
-              }`}
-            >
-              {item.label}
-            </Link>
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={item.current ? "page" : undefined}
+                className={`${LINK} ${item.current ? "bg-brand-50 text-brand-strong" : "text-muted hover:bg-well hover:text-ink"}`}
+              >
+                {item.label}
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
 
-        {/* DESKTOP AUTHENTICATION */}
-        <div className="hidden min-w-0 items-center gap-3 md:flex">
+        <div className="ml-auto hidden min-w-0 items-center gap-1.5 md:flex">
           {isLoading ? (
-            <span role="status" className="text-sm text-zinc-500">
-              Loading account...
+            <span role="status" className="h-10 w-40 animate-pulse rounded-full bg-well">
+              <span className="sr-only">Loading account…</span>
             </span>
           ) : account ? (
             <AccountMenu
@@ -124,148 +136,95 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                aria-current={pathname === "/login" ? "page" : undefined}
+                className={buttonClass({ variant: "ghost", className: "aria-[current=page]:text-brand-strong" })}
               >
-                Log In
+                Log in
               </Link>
-
-              <Link
-                href="/signup"
-                className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-              >
-                Sign Up
-              </Link>
+              <Link href="/signup" className={buttonClass()}>Sign up</Link>
             </>
           )}
         </div>
 
-        {/* MOBILE HAMBURGER BUTTON */}
         <button
+          ref={menuButton}
           type="button"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
           aria-controls="mobile-navigation"
           onClick={() => setMenuOpen((previous) => !previous)}
-          className="relative z-50 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-900 transition hover:bg-zinc-100 md:hidden"
+          className="ml-auto grid size-11 shrink-0 cursor-pointer place-items-center rounded-ctl text-ink transition-colors duration-150 hover:bg-well md:hidden"
         >
-          {menuOpen ? (
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="h-6 w-6"
-            >
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-          ) : (
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="h-6 w-6"
-            >
-              <path d="M4 6h16" />
-              <path d="M4 12h16" />
-              <path d="M4 18h16" />
-            </svg>
-          )}
+          {menuOpen ? <CloseIcon className="size-[22px]" /> : <MenuIcon className="size-[22px]" />}
         </button>
+      </nav>
+
+      {/* Mobile menu: stays in the page so it can animate; hidden from everyone while closed. */}
+      <div
+        id="mobile-navigation"
+        className={`absolute inset-x-0 top-full max-h-[calc(100dvh-68px)] overflow-y-auto border-b border-line bg-surface py-3 pb-5 shadow-float transition-[opacity,translate,visibility] duration-250 ease-soft md:hidden ${
+          menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0"
+        }`}
+      >
+        <div className="wrap flex flex-col gap-1">
+          {navigationLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={closeMenu}
+              aria-current={item.current ? "page" : undefined}
+              className={`${LINK} px-3 py-3.5 text-[17px] ${item.current ? "bg-brand-50 text-brand-strong" : "text-ink-2 hover:bg-well"}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          <hr className="my-2 border-line" />
+
+          {isLoading ? (
+            <p role="status" className="px-3 py-3 text-subtle">Loading account…</p>
+          ) : account ? (
+            <>
+              <p className="truncate px-3 pt-1 pb-2 text-sm text-subtle">
+                {account.email ? <>Logged in as <span className="text-ink-2">{account.email}</span></> : "Logged in"}
+              </p>
+              {ownProfile && (
+                <Link
+                  href={ownProfile}
+                  onClick={closeMenu}
+                  aria-current={pathname === ownProfile ? "page" : undefined}
+                  className={`${LINK} px-3 py-3.5 text-[17px] text-ink-2 hover:bg-well aria-[current=page]:bg-brand-50 aria-[current=page]:text-brand-strong`}
+                >
+                  Your profile
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className={`${LINK} cursor-pointer px-3 py-3.5 text-left text-[17px] text-ink-2 hover:bg-well disabled:opacity-50`}
+              >
+                {loggingOut ? "Logging out…" : "Log out"}
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 pt-1">
+              <Link href="/login" onClick={closeMenu} className={buttonClass({ variant: "secondary", block: true, size: "lg" })}>
+                Log in
+              </Link>
+              <Link href="/signup" onClick={closeMenu} className={buttonClass({ block: true, size: "lg" })}>
+                Sign up
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* MOBILE DROPDOWN */}
-      {menuOpen && (
-        <div
-          id="mobile-navigation"
-          className="absolute left-0 right-0 top-full z-50 max-h-[calc(100dvh-80px)] overflow-y-auto border-b border-zinc-200 bg-white px-4 py-5 shadow-xl md:hidden"
-        >
-          <div className="mx-auto flex max-w-7xl flex-col gap-2">
-            <p className="mb-2 px-3 text-xs font-bold uppercase tracking-widest text-blue-600">
-              Navigation
-            </p>
-
-            {navigationLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeMenu}
-                className={`block rounded-xl px-4 py-3 text-base font-semibold transition ${
-                  pathname === item.href
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-zinc-700 hover:bg-zinc-100"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-
-            <div className="my-3 border-t border-zinc-200" />
-
-            {isLoading ? (
-              <p role="status" className="px-4 py-3 text-sm text-zinc-500">
-                Loading account...
-              </p>
-            ) : account ? (
-              <>
-                <p className="break-all px-4 py-2 text-sm text-zinc-600">
-                  {accountEmail
-                    ? `Signed in as: ${accountEmail}`
-                    : "Signed in"}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="w-full rounded-xl px-4 py-3 text-left text-base font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
-                >
-                  {loggingOut ? "Logging out..." : "Logout"}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  onClick={closeMenu}
-                  className="block rounded-xl px-4 py-3 text-base font-semibold text-zinc-700 hover:bg-zinc-100"
-                >
-                  Log In
-                </Link>
-
-                <Link
-                  href="/signup"
-                  onClick={closeMenu}
-                  className="block rounded-xl bg-blue-600 px-4 py-3 text-center text-base font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Create an Account
-                </Link>
-              </>
-            )}
-
-            <p className="mt-4 text-center text-xs text-zinc-500">
-              Connect. Study. Collaborate.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* AUTHENTICATION ERRORS */}
       {(error || logoutError) && (
-        <div
-          role="alert"
-          className="border-t border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700"
-        >
+        <div role="alert" className="border-t border-red-200 bg-danger-soft px-4 py-3 text-center text-sm text-danger">
           {error || logoutError}
         </div>
       )}
-    </nav>
+    </header>
   );
 }
