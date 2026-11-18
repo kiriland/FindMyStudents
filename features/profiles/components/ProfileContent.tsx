@@ -2,8 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
 import { getProfile, getViewer, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-model";
-import { getRelationships } from "../connections";
+import { getConnectionsOverview, getRelationships } from "../connections";
 import ConnectionControls from "./ConnectionControls";
+import ConnectionsSection from "./ConnectionsSection";
 import Avatar from "./Avatar";
 import ContactDetails from "./ContactDetails";
 import HelpOfferEditor from "./HelpOfferEditor";
@@ -19,6 +20,7 @@ export default async function ProfileContent({ params }: { params: ProfileParams
   if (!viewer) redirect(loginHref(profileHref(id)));
   const profile = await getProfile(viewer, id);
   if (!profile) notFound();
+  const overview = profile.isOwner ? await getConnectionsOverview(viewer) : null;
   const relationship = profile.isOwner ? null : (await getRelationships(viewer, [id])).get(id)!;
   const ownProfile = !profile.isOwner && relationship?.status === "none" && profile.helpOffers.length
     ? await getProfile(viewer, viewer.studentId) : null;
@@ -37,6 +39,7 @@ export default async function ProfileContent({ params }: { params: ProfileParams
           </OwnProfile>
           {/* Always editable, outside edit mode: it's what students change most. */}
           <HelpOfferEditor offers={profile.helpOffers} />
+          {overview && <ConnectionsSection overview={overview} />}
         </>
       ) : (
         <>

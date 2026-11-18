@@ -15,6 +15,17 @@ export type Relationship =
   | { status: "incoming"; requestId: string; courseCode: string; message: string }
   | { status: "declined"; until: string };
 
+export type RelatedStudent = { id: string; displayName: string; initials: string; pictureUrl: string | null; href: string };
+
+export type IncomingRequest = { student: RelatedStudent; requestId: string; courseCode: string; message: string };
+export type SentRequest = { student: RelatedStudent; courseCode: string } & (
+  | { status: "pending"; requestId: string }
+  | { status: "declined"; until: string }
+);
+
+/** The viewer's own requests, visible only to them. */
+export type ConnectionsOverview = { incoming: IncomingRequest[]; sent: SentRequest[] };
+
 export function requestMessage(raw: string) {
   return normalizeBio(raw);
 }

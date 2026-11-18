@@ -5,8 +5,9 @@ import { BatchGetCommand, paginateQuery, TransactWriteCommand, type BatchGetComm
 import { db } from "@/lib/dynamodb";
 import { isUuid } from "@/lib/uuid";
 import { courseCodeKey } from "@/features/courses/course-model";
-import { profileKey, tableName, type Viewer } from "./profile-storage";
-import { DECLINE_COOLDOWN_MS, MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type ConnectionOutcome, type Relationship } from "./connection-model";
+import { getProfiles, profileKey, shownProfile, tableName, type Viewer } from "./profile-storage";
+import { profileHref } from "./profile-model";
+import { DECLINE_COOLDOWN_MS, MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type ConnectionOutcome, type ConnectionsOverview, type IncomingRequest, type RelatedStudent, type Relationship, type SentRequest } from "./connection-model";
 
 const RELATIONSHIP_PREFIX = "RELATIONSHIP#";
 const ATTEMPTS = 5;
@@ -87,6 +88,57 @@ export async function getRelationships(viewer: Viewer, studentIds: string[]) {
     return [id, pair.sender === viewer.studentId && Date.parse(pair.until) > Date.now()
       ? { status: "declined", until: pair.until } : { status: "none" }];
   }));
+}
+
+async function relationshipPairs(studentId: string) {
+  const pairs: Pair[] = [];
+  for await (const page of paginateQuery({ client: db }, {
+    TableName: tableName(), ConsistentRead: true,
+    KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
+    ExpressionAttributeValues: { ":pk": profileKey(studentId).pk, ":prefix": RELATIONSHIP_PREFIX },
+  })) {
+    for (const item of page.Items ?? []) {
+      const pair = readPair(item);
+      if (pair) pairs.push(pair);
+    }
+  }
+  return pairs;
+}
+
+async function relatedStudents(studentIds: string[]) {
+  const students = new Map<string, RelatedStudent>();
+  const ids = [...new Set(studentIds)];
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const profiles = await getProfiles(ids.slice(offset, offset + 100));
+    await Promise.all([...profiles.values()].map(async (profile) => {
+      const { displayName, initials, pictureUrl } = await shownProfile(profile);
+      students.set(profile.studentId, { id: profile.studentId, displayName, initials, pictureUrl, href: profileHref(profile.studentId) });
+    }));
+  }
+  return students;
+}
+
+/** The viewer's requests, newest first: pending ones, then declined ones still in their cooldown. */
+export async function getConnectionsOverview(viewer: Viewer): Promise<ConnectionsOverview> {
+  const now = Date.now();
+  const me = viewer.studentId;
+  const pairs = await relationshipPairs(me);
+  const pending = pairs.flatMap((pair) => (pair.status === "pending" ? [pair] : [])).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const declined = pairs.flatMap((pair) => (pair.status === "declined" && pair.sender === me && Date.parse(pair.until) > now ? [pair] : [])).sort((a, b) => b.until.localeCompare(a.until));
+  const students = await relatedStudents([...pending, ...declined].map((pair) => (pair.sender === me ? pair.recipient : pair.sender)));
+  const incoming: IncomingRequest[] = [];
+  const sent: SentRequest[] = [];
+  for (const pair of pending) {
+    const student = students.get(pair.sender === me ? pair.recipient : pair.sender);
+    if (!student) continue;
+    if (pair.recipient === me) incoming.push({ student, requestId: pair.requestId, courseCode: pair.courseCode, message: pair.message });
+    else sent.push({ student, courseCode: pair.courseCode, status: "pending", requestId: pair.requestId });
+  }
+  for (const pair of declined) {
+    const student = students.get(pair.recipient);
+    if (student) sent.push({ student, courseCode: pair.courseCode, status: "declined", until: pair.until });
+  }
+  return { incoming, sent };
 }
 
 async function outgoingSnapshot(studentId: string) {
