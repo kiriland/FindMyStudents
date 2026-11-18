@@ -7,7 +7,7 @@ import { buttonClass, LINK_CLASS } from "@/components/ui/button";
 import { ERROR_CLASS, HINT_CLASS, LABEL_CLASS, Spinner } from "@/components/ui/Field";
 import { acceptConnectionRequest, declineConnectionRequest, sendConnectionRequest, withdrawConnectionRequest } from "../actions";
 import RemoveConnection from "./RemoveConnection";
-import { REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Relationship } from "../connection-model";
+import { cooldownDate, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Relationship } from "../connection-model";
 import type { HelpOfferView, Outcome } from "../profiles";
 
 type Props = {
@@ -76,7 +76,7 @@ export default function ConnectionControls({ studentId, displayName, relationshi
           <RemoveConnection studentId={studentId} displayName={displayName} label="Remove connection" />
         </>)}
       {relationship.status === "declined" && (
-        <p role="status" className={`${STATUS} bg-well text-muted`}>Declined · you can ask again on {relationship.until.slice(0, 10)} (UTC)</p>
+        <p role="status" className={`${STATUS} bg-well text-muted`}>Declined · you can ask again on {cooldownDate(relationship.until)}</p>
       )}
       {relationship.status === "none" && offers.length > 0 && (open ? (
         <form className="flex flex-col gap-3.5" onSubmit={(event) => { event.preventDefault(); change(() => sendConnectionRequest(studentId, selected, message)); }}>

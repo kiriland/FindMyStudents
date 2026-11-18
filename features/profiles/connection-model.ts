@@ -28,6 +28,14 @@ export type Connection = { student: RelatedStudent; courseCode: string; connecte
 /** The viewer's own requests and Connections, visible only to them. */
 export type ConnectionsOverview = { incoming: IncomingRequest[]; sent: SentRequest[]; connections: Connection[] };
 
+// A fixed locale and time zone, so the server and the browser render the same text.
+const DATE_FORMAT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+/** When a decline cooldown ends, e.g. "Nov 24, 2026 (UTC)". */
+export function cooldownDate(until: string) {
+  return `${DATE_FORMAT.format(new Date(until))} (UTC)`;
+}
+
 export function requestMessage(raw: string) {
   return normalizeBio(raw);
 }
@@ -38,7 +46,7 @@ export function connectionRefusalMessage(refusal: ConnectionRefusal) {
     case "not-volunteer": return "This student no longer offers help with that course.";
     case "pending-exists": return "There is already a pending request between you.";
     case "already-connected": return "You are already connected.";
-    case "cooldown": return `You can ask again on ${refusal.until.slice(0, 10)} (UTC).`;
+    case "cooldown": return `You can ask again on ${cooldownDate(refusal.until)}.`;
     case "limit": return `You already have ${MAX_PENDING_OUTGOING} pending requests. Wait for a response or withdraw one.`;
     case "message-too-long": return `Keep your message to ${REQUEST_MESSAGE_MAX_LENGTH} characters or fewer.`;
     case "not-found": return "This was already withdrawn, handled or removed. Refresh to see the latest status.";

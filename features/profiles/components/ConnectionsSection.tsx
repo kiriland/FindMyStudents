@@ -1,7 +1,7 @@
 import Link from "next/link";
 import CourseTag from "@/components/ui/CourseTag";
 import { courseHref } from "@/features/courses/course-model";
-import type { ConnectionsOverview, RelatedStudent } from "../connection-model";
+import { cooldownDate, type ConnectionsOverview, type RelatedStudent } from "../connection-model";
 import Avatar from "./Avatar";
 import { ContactList } from "./ContactDetails";
 import PrivateBadge from "./PrivateBadge";
@@ -45,7 +45,7 @@ export default function ConnectionsSection({ overview }: { overview: Connections
                 <Student student={request.student} courseCode={request.courseCode} />
                 {request.status === "pending"
                   ? <RequestActions studentId={request.student.id} requestId={request.requestId} kind="outgoing" />
-                  : <p className="text-sm text-subtle">Declined · can ask again on {request.until.slice(0, 10)} (UTC)</p>}
+                  : <p className="text-sm text-subtle">Declined · can ask again on {cooldownDate(request.until)}</p>}
               </li>
             ))}
           </ul>
