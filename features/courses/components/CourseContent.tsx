@@ -24,7 +24,7 @@ export default async function CourseContent({ params }: { params: CourseParams }
       </ol></nav>
       <header className={styles.courseHeading}><span className={styles.courseCode}>{course.courseCode}</span><h1 id={COURSE_HEADING_ID}>{course.title}</h1></header>
       <CourseDescription description={course.description} sourceUrl={course.sourceUrl} />
-      <CourseVolunteers courseCode={course.courseCode} />
+      <CourseVolunteers courseCode={course.courseCode} title={course.title} />
     </article>
   );
 }
