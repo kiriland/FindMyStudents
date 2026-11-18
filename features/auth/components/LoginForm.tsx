@@ -1,14 +1,15 @@
-
 "use client";
 
+// Configures Amplify before this form signs in.
+import "@/lib/amplify";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
-import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { signInWithEmail } from "@/features/auth/auth-client";
+import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to-browser";
 import AuthChallenge, {
   getChallengeToken,
   type TurnstileInstance,
@@ -48,10 +49,10 @@ export default function LoginForm() {
       );
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
-        router.push("/");
+        router.push(currentReturnTo() ?? "/");
         router.refresh();
       } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
-        router.push("/confirm-signup");
+        router.push(keepReturnTo("/confirm-signup"));
       } else {
         setError("Additional sign-in verification is required.");
       }
@@ -164,13 +165,13 @@ export default function LoginForm() {
         )}
 
         {/* LOGIN BUTTON */}
-        <Button
+        <button
           type="submit"
           disabled={loading}
           className="w-full justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
         >
           {loading ? "Logging In..." : "Log In"}
-        </Button>
+        </button>
       </div>
 
       {/* SIGNUP LINK */}

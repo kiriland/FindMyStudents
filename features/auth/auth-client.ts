@@ -30,7 +30,14 @@ export async function signInWithEmail(email: string, password: string, token: st
   });
 }
 
-export async function signUpWithEmail(email: string, password: string, token: string) {
+export type SignupDetails = {
+  email: string;
+  password: string;
+  givenName: string;
+  familyName: string;
+};
+
+export async function signUpWithEmail({ email, password, givenName, familyName }: SignupDetails, token: string) {
   await verifyChallenge(token, "signup");
   return signUp({
     username: email,
@@ -38,6 +45,8 @@ export async function signUpWithEmail(email: string, password: string, token: st
     options: {
       userAttributes: {
         email,
+        given_name: givenName,
+        family_name: familyName,
       },
     },
   });

@@ -42,6 +42,19 @@ jobs:
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: npm run prep:standalone
 
+      # The Web Function runs on arm64, but the build traces sharp's native
+      # binaries for this x64 runner. Add the linux-arm64 (glibc) ones at the
+      # locked sharp version, so profile pictures can be processed.
+      - name: Add sharp binaries for Lambda arm64
+        run: |
+          SHARP_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/sharp'].version")
+          npm install --prefix "$RUNNER_TEMP/sharp-arm64" --no-save --no-package-lock --no-audit --no-fund \
+            --os=linux --cpu=arm64 --libc=glibc "sharp@$SHARP_VERSION"
+          cp -R "$RUNNER_TEMP/sharp-arm64/node_modules/@img/sharp-linux-arm64" \
+                "$RUNNER_TEMP/sharp-arm64/node_modules/@img/sharp-libvips-linux-arm64" \
+                .next/standalone/node_modules/@img/
+          test -f .next/standalone/node_modules/@img/sharp-linux-arm64/lib/sharp-linux-arm64-$SHARP_VERSION.node
+
       - name: Deploy to AWS Lambda Web Functions
         run: |
           aws lambda-web deploy \
@@ -54,6 +67,8 @@ jobs:
             --region "us-east-1" \
             --execution-role-arn "${{ secrets.AWS_LAMBDA_EXECUTION_ROLE_ARN }}" \
             --env DYNAMODB_TABLE_NAME=${{ vars.DYNAMODB_TABLE_NAME }} \
+            --env PROFILES_TABLE_NAME=${{ vars.PROFILES_TABLE_NAME }} \
+            --env PROFILE_PICTURES_BUCKET_NAME=${{ vars.PROFILE_PICTURES_BUCKET_NAME }} \
             --env NEXT_PUBLIC_COGNITO_USER_POOL_ID=${{ vars.NEXT_PUBLIC_COGNITO_USER_POOL_ID }} \
             --env NEXT_PUBLIC_COGNITO_CLIENT_ID=${{ vars.NEXT_PUBLIC_COGNITO_CLIENT_ID }} \
             --env NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }} \

@@ -1,0 +1,8 @@
+# Name of the user pool and profiles table; the app client adds a -web suffix.
+# name = "findmystudents-profiles"
+
+# Required: the Web Function's execution role, as in the AWS_LAMBDA_EXECUTION_ROLE_ARN secret.
+app_execution_role_arn = "arn:aws:iam::123456789012:role/findmystudents-web"
+
+# Origins whose pages may upload pictures to the bucket.
+# app_origins = ["https://findmystudents.com", "https://www.findmystudents.com", "http://localhost:3000"]

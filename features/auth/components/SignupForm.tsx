@@ -1,14 +1,15 @@
-
 "use client";
 
+// Configures Amplify before this form signs up.
+import "@/lib/amplify";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
-import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { signUpWithEmail } from "@/features/auth/auth-client";
+import { keepReturnTo } from "@/features/auth/return-to-browser";
 import AuthChallenge, {
   getChallengeToken,
   type TurnstileInstance,
@@ -18,6 +19,8 @@ export default function SignupForm() {
   const challenge = useRef<TurnstileInstance>(null);
   const submitting = useRef(false);
 
+  const [givenName, setGivenName] = useState("");
+  const [familyName, setFamilyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +35,12 @@ export default function SignupForm() {
 
     if (submitting.current) return;
 
+    const names = { givenName: givenName.trim(), familyName: familyName.trim() };
+    if (!names.givenName || !names.familyName) {
+      setError(names.givenName ? "Enter your last name." : "Enter your first name.");
+      return;
+    }
+
     submitting.current = true;
     setError("");
     setLoading(true);
@@ -42,15 +51,14 @@ export default function SignupForm() {
       token = getChallengeToken(challenge.current);
 
       const { nextStep } = await signUpWithEmail(
-        email.trim(),
-        password,
+        { email: email.trim(), password, ...names },
         token
       );
 
       if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
-        router.push("/confirm-signup");
+        router.push(keepReturnTo("/confirm-signup"));
       } else if (nextStep.signUpStep === "DONE") {
-        router.push("/login");
+        router.push(keepReturnTo("/login"));
       } else {
         setError(
           "Additional steps are required to complete registration."
@@ -107,6 +115,48 @@ export default function SignupForm() {
 
       {/* REGISTRATION FIELDS */}
       <div className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="signup-given-name"
+              className="mb-2 block text-sm font-semibold text-zinc-800"
+            >
+              First Name
+            </label>
+
+            <Input
+              id="signup-given-name"
+              type="text"
+              value={givenName}
+              onChange={(e) => setGivenName(e.target.value)}
+              autoComplete="given-name"
+              maxLength={256}
+              required
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="signup-family-name"
+              className="mb-2 block text-sm font-semibold text-zinc-800"
+            >
+              Last Name
+            </label>
+
+            <Input
+              id="signup-family-name"
+              type="text"
+              value={familyName}
+              onChange={(e) => setFamilyName(e.target.value)}
+              autoComplete="family-name"
+              maxLength={256}
+              required
+              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
+            />
+          </div>
+        </div>
+
         <div>
           <label
             htmlFor="signup-email"
@@ -174,13 +224,13 @@ export default function SignupForm() {
         )}
 
         {/* SIGNUP BUTTON */}
-        <Button
+        <button
           type="submit"
           disabled={loading}
           className="w-full justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
         >
           {loading ? "Creating Account..." : "Create Account"}
-        </Button>
+        </button>
       </div>
 
       {/* LOGIN LINK */}

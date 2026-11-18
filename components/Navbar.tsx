@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -6,7 +5,9 @@ import { signOut } from "aws-amplify/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/features/auth/components/AuthProvider";
+import { useAuth } from "@/features/auth/useAuth";
+import { profileHref } from "@/features/profiles/profile-model";
+import AccountMenu from "./AccountMenu";
 
 export default function Navbar() {
   const { account, isLoading, error } = useAuth();
@@ -38,6 +39,7 @@ export default function Navbar() {
       await signOut();
       closeMenu();
       router.push("/");
+      // Re-render server pages so signed-in content leaves the screen.
       router.refresh();
     } catch {
       setLogoutError("Unable to log out. Please try again.");
@@ -49,6 +51,7 @@ export default function Navbar() {
   const navigationLinks = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
+    ...(account ? [{ href: profileHref(account.userId), label: "Profile" }] : []),
   ];
 
   const accountEmail = account?.email;
@@ -111,25 +114,12 @@ export default function Navbar() {
               Loading account...
             </span>
           ) : account ? (
-            <>
-              <span
-                className="max-w-40 truncate text-xs text-zinc-600"
-                title={accountEmail ?? undefined}
-              >
-                {accountEmail
-                  ? `Welcome, ${accountEmail}`
-                  : "Signed in"}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-50"
-              >
-                {loggingOut ? "Logging out..." : "Logout"}
-              </button>
-            </>
+            <AccountMenu
+              email={account.email}
+              profileHref={profileHref(account.userId)}
+              onLogout={handleLogout}
+              loggingOut={loggingOut}
+            />
           ) : (
             <>
               <Link

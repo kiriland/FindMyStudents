@@ -23,8 +23,10 @@ configure these repository values:
 | Secret | `AWS_LAMBDA_EXECUTION_ROLE_ARN` | Role used by the running Web Function |
 | Secret | `TURNSTILE_SECRET_KEY` | Private Cloudflare verification key; deployment only |
 | Variable | `DYNAMODB_TABLE_NAME` | `classes` |
-| Variable | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Public Cognito pool ID |
-| Variable | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Public Cognito app client ID |
+| Variable | `PROFILES_TABLE_NAME` | Profiles table, from the profiles Terraform output |
+| Variable | `PROFILE_PICTURES_BUCKET_NAME` | Profile picture bucket, from the profiles Terraform output |
+| Variable | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Public Cognito pool ID, from the profiles Terraform output |
+| Variable | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Public Cognito app client ID, from the profiles Terraform output |
 | Variable | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public Cloudflare widget key |
 | Variable | `TURNSTILE_ALLOWED_HOSTNAMES` | Comma-separated production hostnames, without protocols or ports |
 
@@ -58,11 +60,13 @@ business concerns grouped into feature modules.
 ```text
 app/                 # Routes and layouts only
 ├── (auth)/           # Login, signup, and confirmation routes
-└── (dashboard)/      # Authenticated dashboard
+├── (courses)/        # Course directory (/dashboard) and course pages
+└── (profiles)/       # Student Profiles at /students/[id]
 components/           # Shared UI primitives
 features/
-├── auth/             # Cognito auth client and auth-specific components
-└── dashboard/        # Course queries and dashboard components
+├── auth/             # Cognito auth client, server session, and auth components
+├── courses/          # Course catalogue, search, and course pages
+└── profiles/         # Profiles module (server-only) and Profile components
 lib/                 # Shared infrastructure configuration
 ```
 
@@ -76,7 +80,24 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Fill in the Cognito pool and client IDs in `.env.local` and use an authenticated AWS profile. For a named profile, add `AWS_PROFILE=your-profile-name`. Keep credentials out of Git.
+Fill in the Cognito pool and client IDs, the profiles table name and the picture bucket name in `.env.local` and use an authenticated AWS profile. For a named profile, add `AWS_PROFILE=your-profile-name`. Keep credentials out of Git.
+
+## Profiles and sign-in
+
+The Cognito user pool, its app client and the profiles table are defined in
+Terraform. See [the profiles infrastructure guide](infrastructure/profiles/README.md)
+for applying it and the manual cutover steps.
+
+Auth sessions are kept in cookies (ADR 0001), so server-rendered pages and
+server actions know the signed-in student. Pages and server actions use the
+Profiles module in `features/profiles/profiles.ts`, never AWS directly. Its
+`getViewer()` returns the signed-in student, or null when signed out, and
+creates the student's Profile the first time it sees them. Every Profile
+operation takes that Viewer.
+
+The deployed runtime needs `PROFILES_TABLE_NAME` and
+`PROFILE_PICTURES_BUCKET_NAME`. Terraform grants the app's role access to the
+table, the bucket and Rekognition.
 
 ## Class data
 
@@ -85,9 +106,9 @@ use `./scripts/deploy-course-importer.sh`. See
 [the importer setup and operations guide](infrastructure/course-importer/README.md)
 for prerequisites, four semester schedules, and manual console runs.
 
-The app reads the existing `classes` table in `us-east-1`. No seed command is needed. `data/classes.json` is a reference copy of the two sample courses, not the app's data source.
+The app reads the existing `classes` table in `us-east-1`. No seed command is needed.
 
-The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/dashboard/`.
+The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/courses/`.
 
 Set `DYNAMODB_TABLE_NAME=classes` on the deployed runtime and give its role `dynamodb:Query` permission on this table. AWS credentials are used only on the server.
 
