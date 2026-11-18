@@ -5,7 +5,7 @@ import { signOut } from "aws-amplify/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useAuth } from "@/features/auth/components/AuthProvider";
+import { useAuth } from "@/features/auth/useAuth";
 import { profileHref } from "@/features/profiles/profile-model";
 import AccountMenu from "./AccountMenu";
 
