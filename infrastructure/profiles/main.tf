@@ -246,6 +246,7 @@ resource "aws_iam_role_policy" "app_profiles_table" {
         Action = [
           "dynamodb:Query",
           "dynamodb:BatchGetItem",
+          "dynamodb:ConditionCheckItem",
           "dynamodb:PutItem",
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem",

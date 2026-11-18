@@ -25,9 +25,9 @@ The signed-in student a page or change acts for. A Viewer always has a **Profile
 _Avoid_: User, Account (the login identity)
 
 **Connection Request**:
-A student's request to a **Volunteer**, about one **Course**, to see the Volunteer's contact details. The Volunteer accepts or declines it.
+A student's request to a **Volunteer**, about one **Course**, to share contact details with each other. The Volunteer accepts or declines it.
 _Avoid_: Contact Request
 
 **Connection**:
-What an accepted **Connection Request** creates: the requester can see the Volunteer's contact details. It is one-way, and the Volunteer can revoke it.
+What an accepted **Connection Request** creates: both students can see each other's contact details. It is mutual, and either student can remove it.
 _Avoid_: Contact Access

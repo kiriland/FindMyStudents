@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
 import { getProfile, getViewer, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-model";
+import { getRelationships } from "../connections";
+import ConnectionControls from "./ConnectionControls";
 import Avatar from "./Avatar";
 import ContactDetails from "./ContactDetails";
 import HelpOfferEditor from "./HelpOfferEditor";
@@ -17,6 +19,10 @@ export default async function ProfileContent({ params }: { params: ProfileParams
   if (!viewer) redirect(loginHref(profileHref(id)));
   const profile = await getProfile(viewer, id);
   if (!profile) notFound();
+  const relationship = profile.isOwner ? null : (await getRelationships(viewer, [id])).get(id)!;
+  const ownProfile = !profile.isOwner && relationship?.status === "none" && profile.helpOffers.length
+    ? await getProfile(viewer, viewer.studentId) : null;
+  const hasContacts = !!(ownProfile?.isOwner && Object.values(ownProfile.contacts).some(Boolean));
   return (
     <article aria-labelledby="profile-name">
       <header className={styles.header}>
@@ -36,6 +42,7 @@ export default async function ProfileContent({ params }: { params: ProfileParams
         <>
           <ProfileDetails profile={profile} />
           <HelpOffers offers={profile.helpOffers} />
+          {relationship && <ConnectionControls studentId={id} relationship={relationship} offers={profile.helpOffers} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} />}
         </>
       )}
     </article>

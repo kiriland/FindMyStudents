@@ -5,6 +5,18 @@ import { db } from "@/lib/dynamodb";
 import { CONTACT_FIELDS, type Contacts } from "./profile-model";
 import { isPictureKey, pictureUrl } from "./pictures";
 
+declare const viewerBrand: unique symbol;
+
+/**
+ * The signed-in student a Profile operation acts for. Only `getViewer` makes
+ * one, and a Viewer always has a Profile. Signed-out visitors have no Viewer,
+ * so every operation that shows Profile content requires one.
+ */
+export type Viewer = { readonly studentId: string; readonly [viewerBrand]: true };
+
+/** The outcome of a change: done, or refused with a message to show the student. */
+export type Outcome<Refusal = { message: string }> = { ok: true } | ({ ok: false } & Refusal);
+
 const BATCH_GET_ATTEMPTS = 5;
 
 export function tableName() {

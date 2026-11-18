@@ -41,7 +41,7 @@
 .contactLink svg { flex-shrink: 0; color: #4338ca; font-size: 18px; }
 .copied { color: #15803d; font-size: 13px; font-weight: 600; }
 .contactFields { display: flex; flex-direction: column; gap: 16px; border: 0; padding: 0; margin: 0; min-width: 0; }
-.field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #d4d4d8; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
+.field input, .field select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #d4d4d8; border-radius: 8px; background: transparent; color: inherit; font: inherit; }
 .field input[aria-invalid="true"] { border-color: #dc2626; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; }
 .chip { display: inline-flex; align-items: center; border: 1px solid #c7d2fe; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 14px; font-weight: 600; }

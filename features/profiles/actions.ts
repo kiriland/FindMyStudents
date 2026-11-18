@@ -1,5 +1,7 @@
 "use server";
 
+import { sendRequest, withdrawRequest } from "./connections";
+import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
 import { addHelpOffer, confirmPictureUpload, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
@@ -97,5 +99,19 @@ export async function deletePicture(): Promise<Outcome> {
   return asSignedInStudent("Removing a picture", "Your picture could not be removed. Please try again.", async (viewer) => {
     await removePicture(viewer);
     return done();
+  });
+}
+
+export async function sendConnectionRequest(recipient: unknown, courseCode: unknown, message: unknown): Promise<Outcome> {
+  return asSignedInStudent("Sending a Connection Request", "Your request could not be sent. Please try again.", async (viewer) => {
+    const outcome = await sendRequest(viewer, text(recipient), text(courseCode), text(message));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function withdrawConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Withdrawing a Connection Request", "Your request could not be withdrawn. Please try again.", async (viewer) => {
+    const outcome = await withdrawRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
   });
 }

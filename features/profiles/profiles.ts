@@ -10,19 +10,9 @@ import { courseCodeKey, courseHref, SCHOOL } from "@/features/courses/course-mod
 import { checkPictureFile, CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseContact, PICTURE_CONTENT_ERROR, profileHref, type ContactField, type Contacts } from "./profile-model";
 import { moderatePicture } from "./moderation";
 import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
-import { tableName, profileKey, ignoreConditionFailure, readProfile, shownProfile, getProfiles } from "./profile-storage";
+import { tableName, profileKey, ignoreConditionFailure, readProfile, shownProfile, getProfiles, type Viewer, type Outcome } from "./profile-storage";
 
-declare const viewerBrand: unique symbol;
-
-/**
- * The signed-in student a Profile operation acts for. Only `getViewer` makes
- * one, and a Viewer always has a Profile. Signed-out visitors have no Viewer,
- * so every operation that shows Profile content requires one.
- */
-export type Viewer = { readonly studentId: string; readonly [viewerBrand]: true };
-
-/** The outcome of a change: done, or refused with a message to show the student. */
-export type Outcome<Refusal = { message: string }> = { ok: true } | ({ ok: false } & Refusal);
+export type { Viewer, Outcome } from "./profile-storage";
 
 /** A Profile as one Viewer may see it. Only its owner gets contact details. */
 export type ProfileView = {
