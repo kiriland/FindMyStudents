@@ -9,7 +9,12 @@ import { useAuth } from "@/features/auth/useAuth";
 import { profileHref } from "@/features/profiles/profile-model";
 import AccountMenu from "./AccountMenu";
 
-export default function Navbar() {
+type NavbarProps = {
+  /** Shown next to the Profile tab, such as a count of pending requests. */
+  profileBadge?: React.ReactNode;
+};
+
+export default function Navbar({ profileBadge }: NavbarProps) {
   const { account, isLoading, error } = useAuth();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -48,10 +53,10 @@ export default function Navbar() {
     }
   }
 
-  const navigationLinks = [
+  const navigationLinks: { href: string; label: string; badge?: React.ReactNode }[] = [
     { href: "/", label: "Home" },
     { href: "/dashboard", label: "Dashboard" },
-    ...(account ? [{ href: profileHref(account.userId), label: "Profile" }] : []),
+    ...(account ? [{ href: profileHref(account.userId), label: "Profile", badge: profileBadge }] : []),
   ];
 
   const accountEmail = account?.email;
@@ -103,6 +108,7 @@ export default function Navbar() {
               }`}
             >
               {item.label}
+              {item.badge}
             </Link>
           ))}
         </div>
@@ -204,6 +210,7 @@ export default function Navbar() {
                 }`}
               >
                 {item.label}
+                {item.badge}
               </Link>
             ))}
 

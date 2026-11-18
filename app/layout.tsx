@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import PendingRequestsBadge from "@/features/profiles/components/PendingRequestsBadge";
 
 export const metadata: Metadata = {
   title: "FindMyStudents",
@@ -21,7 +22,7 @@ export default function RootLayout({
         {/* Navbar reads usePathname(), which suspends while prerendering
             routes with dynamic params such as /students/[id]. */}
         <Suspense>
-          <Navbar />
+          <Navbar profileBadge={<Suspense><PendingRequestsBadge /></Suspense>} />
         </Suspense>
         {children}
         {modal}

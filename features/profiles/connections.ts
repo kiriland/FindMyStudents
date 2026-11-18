@@ -167,6 +167,20 @@ async function withContacts(studentIds: string[]) {
   return students;
 }
 
+/** How many pending requests are waiting for the viewer, for the Profile tab's badge. */
+export async function countPendingIncoming(viewer: Viewer) {
+  let count = 0;
+  for await (const page of paginateQuery({ client: db }, {
+    TableName: tableName(), ConsistentRead: true,
+    KeyConditionExpression: "pk = :pk AND begins_with(sk, :prefix)",
+    FilterExpression: "#status = :pending AND recipient = :me",
+    ExpressionAttributeNames: { "#status": "status" },
+    ExpressionAttributeValues: { ":pk": profileKey(viewer.studentId).pk, ":prefix": RELATIONSHIP_PREFIX, ":pending": "pending", ":me": viewer.studentId },
+    Select: "COUNT",
+  })) count += page.Count ?? 0;
+  return count;
+}
+
 async function outgoingSnapshot(studentId: string) {
   const key = profileKey(studentId);
   const profile = (await readItems([key], ["studentId", "connectionsVersion"])).get(keyId(key));
