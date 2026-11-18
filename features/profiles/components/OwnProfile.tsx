@@ -5,6 +5,7 @@ import { INPUT_CLASS } from "@/components/Input";
 import { buttonClass } from "@/components/ui/button";
 import { ERROR_CLASS, HINT_CLASS, LABEL_CLASS, Spinner } from "@/components/ui/Field";
 import { saveProfile, type ProfileFormState } from "../actions";
+import DeleteAccount from "./DeleteAccount";
 import PictureEditor from "./PictureEditor";
 import PrivateBadge from "./PrivateBadge";
 import { BIO_MAX_LENGTH, bioLength, CONTACT_FIELDS, CONTACT_RULES, type ContactField, type Contacts } from "../profile-model";
@@ -77,6 +78,7 @@ export default function OwnProfile({ bio, hasPicture, pictureUrl, initials, cont
             {/* Outside the form: a picture saves as soon as it is chosen, not with Save. */}
             <PictureEditor hasPicture={hasPicture} pictureUrl={pictureUrl} initials={initials} />
             <ProfileForm bio={bio} contacts={contacts} onDone={leaveEditMode} />
+            <DeleteAccount />
           </div>
         ) : (
           <div className="animate-fade-up">{about}</div>

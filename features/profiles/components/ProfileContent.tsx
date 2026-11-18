@@ -6,7 +6,6 @@ import { getConnectionsOverview, getRelationship } from "../connections";
 import Avatar from "./Avatar";
 import ConnectionControls from "./ConnectionControls";
 import ConnectionsSection from "./ConnectionsSection";
-import DeleteAccount from "./DeleteAccount";
 import ContactDetails from "./ContactDetails";
 import HelpOfferEditor from "./HelpOfferEditor";
 import HelpOffers from "./HelpOffers";
@@ -44,7 +43,6 @@ export default async function ProfileContent({ params }: { params: ProfileParams
           {/* Always editable, outside edit mode: it's what students change most. */}
           <HelpOfferEditor offers={profile.helpOffers} />
           {overview && <ConnectionsSection overview={overview} />}
-          <DeleteAccount />
         </OwnProfile>
       ) : (
         <>

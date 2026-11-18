@@ -10,7 +10,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { deleteAccount } from "../actions";
 import { DELETE_ACCOUNT_PHRASE } from "../profile-model";
 import type { Outcome } from "../profiles";
-import { SECTION_TITLE } from "./profile-styles";
+import { PANEL, PANEL_BODY, PANEL_HEAD, PANEL_TITLE } from "./profile-styles";
 
 /** Deleting the owner's account, after they type their email and DELETE_ACCOUNT_PHRASE. */
 export default function DeleteAccount() {
@@ -44,18 +44,22 @@ export default function DeleteAccount() {
   }
 
   return (
-    <section aria-labelledby="delete-account" className="flex flex-col gap-3 border-t border-line pt-8">
-      <h2 id="delete-account" className={SECTION_TITLE}>Delete account</h2>
-      <p className="max-w-[62ch] text-ink-2">
-        This deletes your login, profile, picture, Help Offers, Connection Requests and Connections. It can’t be undone.
-      </p>
-      <button
-        type="button"
-        className={buttonClass({ variant: "secondary", className: "w-fit text-danger" })}
-        onClick={() => { setFeedback(""); dialog.current?.showModal(); }}
-      >
-        Delete account
-      </button>
+    <section aria-labelledby="delete-account" className={PANEL}>
+      <div className={PANEL_HEAD}>
+        <h2 id="delete-account" className={PANEL_TITLE}>Delete account</h2>
+      </div>
+      <div className={PANEL_BODY}>
+        <p className={HINT_CLASS}>
+          This deletes your login, profile, picture, Help Offers, Connection Requests and Connections. It can’t be undone.
+        </p>
+        <button
+          type="button"
+          className={buttonClass({ variant: "secondary", className: "w-fit text-danger" })}
+          onClick={() => { setFeedback(""); dialog.current?.showModal(); }}
+        >
+          Delete account
+        </button>
+      </div>
       <dialog
         ref={dialog}
         aria-labelledby={`${id}-title`}
