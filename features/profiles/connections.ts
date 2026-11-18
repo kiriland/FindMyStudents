@@ -300,12 +300,14 @@ async function respondToRequest(viewer: Viewer, otherId: string, requestId: stri
     const next: Pair = decision === "accept"
       ? { status: "connected", students: [pair.sender, pair.recipient].sort() as [string, string], courseCode: pair.courseCode, connectedAt: new Date(now).toISOString() }
       : { status: "declined", sender: pair.sender, recipient: pair.recipient, requestId, courseCode: pair.courseCode, until: new Date(now + DECLINE_COOLDOWN_MS).toISOString() };
+    // DynamoDB's TTL deletes a decline once its cooldown is over, so no history is kept.
+    const stored = next.status === "declined" ? { ...next, expiresAt: Math.ceil(Date.parse(next.until) / 1000) } : next;
     if (await transact([
-      { Put: { TableName: tableName(), Item: { ...pairKey(pair.sender, pair.recipient), ...next },
+      { Put: { TableName: tableName(), Item: { ...pairKey(pair.sender, pair.recipient), ...stored },
         ConditionExpression: "#status = :pending AND requestId = :id AND recipient = :recipient",
         ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":pending": "pending", ":id": requestId, ":recipient": viewer.studentId } } },
-      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.sender, pair.recipient), ...next } } },
-      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.recipient, pair.sender), ...next } } },
+      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.sender, pair.recipient), ...stored } } },
+      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.recipient, pair.sender), ...stored } } },
       counterUpdate(pair.sender, snapshot, -1),
       { ConditionCheck: { TableName: tableName(), Key: profileKey(pair.recipient), ConditionExpression: "attribute_exists(pk)" } },
     ])) return { ok: true };

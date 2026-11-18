@@ -138,6 +138,13 @@ resource "aws_dynamodb_table" "profiles" {
   point_in_time_recovery {
     enabled = true
   }
+
+  # Declined Connection Requests carry expiresAt, the end of their cooldown, so
+  # they are deleted once it is over.
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
 }
 
 data "aws_caller_identity" "current" {}

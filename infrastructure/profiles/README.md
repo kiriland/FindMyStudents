@@ -9,6 +9,8 @@ Terraform for student Profiles:
   one item per Help Offer in the student's partition
 - the table's `course-volunteers` index, which lists a Course's Volunteers
   newest Help Offer first. Only Help Offer items are in it.
+- a TTL on `expiresAt`, which deletes declined Connection Requests once their
+  7-day cooldown is over
 - the private `<name>-pictures-<account id>` bucket for profile pictures, with
   public access blocked, CORS for uploads from the app's origins, and a
   lifecycle rule that deletes unconfirmed uploads in `quarantine/` after 1 day
