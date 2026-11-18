@@ -5,15 +5,31 @@ import "@/lib/amplify";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 import Input from "@/components/Input";
+import { buttonClass, LINK_CLASS } from "@/components/ui/button";
+import Field, { FormAlert, Spinner } from "@/components/ui/Field";
+import { CheckIcon } from "@/components/ui/icons";
 import { signUpWithEmail } from "@/features/auth/auth-client";
 import { keepReturnTo } from "@/features/auth/return-to-browser";
+import { MAX_HELP_OFFERS } from "@/features/profiles/profile-model";
 import AuthChallenge, {
   getChallengeToken,
   type TurnstileInstance,
 } from "./AuthChallenge";
+import AuthShell from "./AuthShell";
+import PasswordInput from "./PasswordInput";
+import TurnstileNote from "./TurnstileNote";
+
+// The account password policy (infrastructure/profiles/main.tf), shown as the
+// student types. Cognito still enforces it.
+const PASSWORD_RULES = [
+  { label: "At least 8 characters", test: (value: string) => value.length >= 8 },
+  { label: "A lowercase letter", test: (value: string) => /[a-z]/.test(value) },
+  { label: "An uppercase letter", test: (value: string) => /[A-Z]/.test(value) },
+  { label: "A number", test: (value: string) => /\d/.test(value) },
+  { label: "A symbol, like ! ? # or @", test: (value: string) => /[^A-Za-z0-9\s]/.test(value) },
+];
 
 export default function SignupForm() {
   const challenge = useRef<TurnstileInstance>(null);
@@ -27,6 +43,7 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
+  const passwordReady = PASSWORD_RULES.every((rule) => rule.test(password));
 
   async function handleSubmit(
     e: React.SubmitEvent<HTMLFormElement>
@@ -38,6 +55,10 @@ export default function SignupForm() {
     const names = { givenName: givenName.trim(), familyName: familyName.trim() };
     if (!names.givenName || !names.familyName) {
       setError(names.givenName ? "Enter your last name." : "Enter your first name.");
+      return;
+    }
+    if (!passwordReady) {
+      setError("Choose a password that meets every requirement below the password field.");
       return;
     }
 
@@ -80,50 +101,53 @@ export default function SignupForm() {
     }
   }
 
+  // Profiles show a first name and last initial; the preview does the same.
+  const first = givenName.trim();
+  const last = familyName.trim();
+  const previewName = first ? `${first}${last ? ` ${last[0].toUpperCase()}.` : ""}` : "";
+  const initials = `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-10"
+    <AuthShell
+      step={1}
+      title="Create your account"
+      subtitle="It takes about a minute. Next, you’ll confirm your email with a code."
+      aside={{
+        heading: "Your profile, taking shape.",
+        text: "This is how other logged-in students will see you. Add a bio, a picture and your Help Offers once you’re in.",
+        visual: (
+          <div className="flex flex-col gap-6">
+            <div className="max-w-[380px] rounded-[18px] border border-line bg-surface p-5 shadow-float">
+              <div className="flex items-center gap-3.5">
+                <span className="grid size-14 shrink-0 place-items-center rounded-full bg-brand-100 font-display text-xl font-semibold text-brand-strong">
+                  {initials || "?"}
+                </span>
+                <span className="min-w-0">
+                  <strong className={`block truncate font-display text-lg font-semibold ${previewName ? "text-ink" : "text-faint"}`}>
+                    {previewName || "Your name"}
+                  </strong>
+                  <small className="text-sm text-subtle">Offers help with 0 courses</small>
+                </span>
+              </div>
+              <div className="mt-4 rounded-ctl border border-dashed border-brand-200 px-3.5 py-3 font-display text-sm font-medium text-brand-strong">
+                + Add the courses you can help with
+              </div>
+            </div>
+            <ul className="flex flex-col gap-2.5 text-ink-2">
+              {["See who offers help with each course", "Create a profile with a bio and picture", `Offer help with up to ${MAX_HELP_OFFERS} courses`].map((perk) => (
+                <li key={perk} className="flex items-center gap-2.5">
+                  <span className="grid size-6 place-items-center rounded-full bg-brand text-white"><CheckIcon className="size-3.5" /></span>
+                  {perk}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ),
+      }}
     >
-      {/* LOGO AND WELCOME */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-5 flex justify-center">
-          <Image
-            src="/favicon.ico"
-            alt="FindMyStudents Logo"
-            width={90}
-            height={90}
-            unoptimized
-            priority
-            className="h-[90px] w-[90px] object-contain"
-          />
-        </div>
-
-        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-600">
-          FindMyStudents
-        </p>
-
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-          Join the Community
-        </h1>
-
-        <p className="mt-3 text-sm leading-6 text-zinc-600">
-          Create your account and start connecting with fellow
-          Baruch College students.
-        </p>
-      </div>
-
-      {/* REGISTRATION FIELDS */}
-      <div className="space-y-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="signup-given-name"
-              className="mb-2 block text-sm font-semibold text-zinc-800"
-            >
-              First Name
-            </label>
-
+          <Field label="First name" htmlFor="signup-given-name">
             <Input
               id="signup-given-name"
               type="text"
@@ -132,18 +156,9 @@ export default function SignupForm() {
               autoComplete="given-name"
               maxLength={256}
               required
-              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
             />
-          </div>
-
-          <div>
-            <label
-              htmlFor="signup-family-name"
-              className="mb-2 block text-sm font-semibold text-zinc-800"
-            >
-              Last Name
-            </label>
-
+          </Field>
+          <Field label="Last name" htmlFor="signup-family-name">
             <Input
               id="signup-family-name"
               type="text"
@@ -152,104 +167,69 @@ export default function SignupForm() {
               autoComplete="family-name"
               maxLength={256}
               required
-              className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
             />
-          </div>
+          </Field>
         </div>
 
-        <div>
-          <label
-            htmlFor="signup-email"
-            className="mb-2 block text-sm font-semibold text-zinc-800"
-          >
-            Email Address
-          </label>
-
+        <Field label="Email" htmlFor="signup-email" hint="Use your Baruch College student email. We’ll send a code there to confirm it’s yours." hintId="signup-email-hint">
           <Input
             id="signup-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email address"
+            placeholder="you@example.com"
             autoComplete="email"
+            aria-describedby="signup-email-hint"
             required
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
           />
+        </Field>
 
-          <p className="mt-2 text-xs text-zinc-500">
-            Use your Baruch College student email.
-          </p>
-        </div>
-
-        <div>
-          <label
-            htmlFor="signup-password"
-            className="mb-2 block text-sm font-semibold text-zinc-800"
-          >
-            Create Password
-          </label>
-
-          <Input
+        <Field label="Password" htmlFor="signup-password">
+          <PasswordInput
             id="signup-password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a secure password"
             autoComplete="new-password"
+            aria-describedby="signup-password-rules"
             required
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
           />
+          <ul id="signup-password-rules" aria-label="Password requirements" className="mt-1 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+            {PASSWORD_RULES.map((rule) => {
+              const met = rule.test(password);
+              return (
+                <li key={rule.label} className={`flex items-center gap-2 transition-colors duration-200 ${met ? "text-success" : "text-subtle"}`}>
+                  <span
+                    aria-hidden="true"
+                    className={`grid size-[18px] shrink-0 place-items-center rounded-full border transition-[background-color,border-color] duration-200 ${
+                      met ? "border-success bg-success text-white" : "border-line-strong"
+                    }`}
+                  >
+                    {met && <CheckIcon className="size-3" />}
+                  </span>
+                  {rule.label}
+                  {met && <span className="sr-only"> (done)</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </Field>
 
-          <p className="mt-2 text-xs text-zinc-500">
-            Choose a strong password to protect your account.
-          </p>
-        </div>
+        <TurnstileNote>
+          <AuthChallenge ref={challenge} action="signup" />
+        </TurnstileNote>
 
-        {/* SECURITY VERIFICATION */}
-        <div className="min-w-0 overflow-hidden">
-          <AuthChallenge
-            ref={challenge}
-            action="signup"
-          />
-        </div>
+        {error && <FormAlert>{error}</FormAlert>}
 
-        {/* ERROR MESSAGE */}
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-          >
-            {error}
-          </p>
-        )}
-
-        {/* SIGNUP BUTTON */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
-        >
-          {loading ? "Creating Account..." : "Create Account"}
+        <button type="submit" disabled={loading} className={buttonClass({ size: "lg", block: true })}>
+          {loading && <Spinner />}
+          {loading ? "Creating account…" : "Create account"}
         </button>
-      </div>
+      </form>
 
-      {/* LOGIN LINK */}
-      <p className="mt-7 text-center text-sm text-zinc-600">
+      <p className="mt-6 text-muted">
         Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-semibold text-blue-600 hover:underline"
-        >
-          Log In
-        </Link>
+        <Link href="/login" className={LINK_CLASS}>Log in</Link>
       </p>
-
-      {/* FOOTER */}
-      <div className="mt-7 border-t border-zinc-100 pt-5 text-center">
-        <p className="text-xs text-zinc-500">
-          Connect. Collaborate. Succeed.
-        </p>
-      </div>
-    </form>
+    </AuthShell>
   );
 }

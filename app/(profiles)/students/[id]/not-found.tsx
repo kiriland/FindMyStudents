@@ -1,6 +1,5 @@
 import { ProfileNotFound } from "@/features/profiles/components/ProfileFeedback";
-import styles from "@/features/profiles/profile.module.css";
 
 export default function NotFound() {
-  return <main className={styles.page}><ProfileNotFound /></main>;
+  return <main id="main" className="wrap w-full flex-1 pt-[clamp(28px,4vw,48px)] pb-24"><ProfileNotFound /></main>;
 }

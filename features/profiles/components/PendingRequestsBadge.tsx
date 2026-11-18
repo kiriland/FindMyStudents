@@ -15,7 +15,7 @@ export default async function PendingRequestsBadge() {
   }
   if (!count) return null;
   return (
-    <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white">
+    <span className="ml-2 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1.5 font-display text-xs leading-none font-semibold text-white tabular-nums">
       {count}<span className="sr-only"> pending connection {count === 1 ? "request" : "requests"}</span>
     </span>
   );

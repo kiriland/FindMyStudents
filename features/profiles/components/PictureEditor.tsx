@@ -1,9 +1,13 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { buttonClass } from "@/components/ui/button";
+import { ERROR_CLASS, HINT_CLASS, Spinner } from "@/components/ui/Field";
+import { CheckIcon } from "@/components/ui/icons";
 import { confirmPicture, deletePicture, requestPictureUpload } from "../actions";
 import { checkPictureFile, PICTURE_SIZE_ERROR, PICTURE_TYPES } from "../profile-model";
-import styles from "../profile.module.css";
+import Avatar from "./Avatar";
+import { PANEL, PANEL_BODY, PANEL_HEAD, PANEL_TITLE } from "./profile-styles";
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "removing" } | { kind: "done"; message: string } | { kind: "error"; message: string };
 
@@ -13,7 +17,7 @@ const UPLOAD_FAILED = "Your picture could not be uploaded. Please try again.";
  * Uploads, replaces or removes the owner's picture. Each change saves straight
  * away, apart from the rest of the edit form.
  */
-export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
+export default function PictureEditor({ hasPicture, pictureUrl, initials }: { hasPicture: boolean; pictureUrl: string | null; initials: string }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -59,45 +63,69 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
   }
 
   return (
-    <div className={`${styles.field} ${styles.pictureField}`} role="group" aria-labelledby="profile-picture-label">
-      <span id="profile-picture-label" className={styles.label}>Profile picture</span>
-      <p id="profile-picture-hint" className={styles.hint}>
-        Optional. JPEG or PNG, up to 5 MB. Shown as a square to signed-in students. Location and other photo details
-        are removed. Changes save straight away.
-      </p>
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.button}
-          disabled={busy}
-          aria-describedby="profile-picture-hint"
-          onClick={() => fileInput.current?.click()}
-        >
-          {status.kind === "saving" ? "Saving…" : hasPicture ? "Replace picture" : "Upload picture"}
-        </button>
-        {hasPicture && (
-          <button type="button" className={styles.button} disabled={busy} onClick={remove}>
-            {status.kind === "removing" ? "Removing…" : "Remove picture"}
-          </button>
+    <section className={PANEL} role="group" aria-labelledby="profile-picture-label">
+      <div className={PANEL_HEAD}>
+        <h2 id="profile-picture-label" className={PANEL_TITLE}>Profile picture</h2>
+        <SavesNow />
+        <p id="profile-picture-hint" className={`${HINT_CLASS} w-full`}>
+          Optional. JPEG or PNG, up to 5 MB. Shown as a square to signed-in students. It’s checked before it appears,
+          and location and other photo details are removed.
+        </p>
+      </div>
+      <div className={PANEL_BODY}>
+        <div className="flex flex-wrap items-center gap-4">
+          <span className={`relative transition-opacity duration-250 ${busy ? "opacity-60" : ""}`}>
+            <Avatar size="medium" initials={initials} pictureUrl={pictureUrl} />
+            {busy && (
+              <span className="absolute inset-0 grid place-items-center text-brand-strong"><Spinner /></span>
+            )}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={buttonClass({ variant: "secondary", size: "sm" })}
+              disabled={busy}
+              aria-describedby="profile-picture-hint"
+              onClick={() => fileInput.current?.click()}
+            >
+              {status.kind === "saving" ? "Checking and saving…" : hasPicture ? "Replace picture" : "Upload picture"}
+            </button>
+            {hasPicture && (
+              <button type="button" className={buttonClass({ variant: "ghost", size: "sm" })} disabled={busy} onClick={remove}>
+                {status.kind === "removing" ? "Removing…" : "Remove picture"}
+              </button>
+            )}
+          </div>
+        </div>
+        <input
+          ref={fileInput}
+          type="file"
+          accept={PICTURE_TYPES.join(",")}
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            // Clear it, so choosing the same file again still uploads it.
+            event.target.value = "";
+            if (file) upload(file);
+          }}
+        />
+        {status.kind === "error" ? (
+          <p role="alert" className={ERROR_CLASS}>{status.message}</p>
+        ) : (
+          <p role="status" className={`${HINT_CLASS} empty:-mt-4 ${status.kind === "done" ? "font-medium text-success" : ""}`}>
+            {status.kind === "done" ? status.message : ""}
+          </p>
         )}
       </div>
-      <input
-        ref={fileInput}
-        type="file"
-        accept={PICTURE_TYPES.join(",")}
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          // Clear it, so choosing the same file again still uploads it.
-          event.target.value = "";
-          if (file) upload(file);
-        }}
-      />
-      {status.kind === "error" ? (
-        <p role="alert" className={styles.fieldError}>{status.message}</p>
-      ) : (
-        <p role="status" className={styles.hint}>{status.kind === "done" ? status.message : ""}</p>
-      )}
-    </div>
+    </section>
+  );
+}
+
+/** Says a panel's changes save without pressing Save. */
+export function SavesNow({ label = "Saves straight away" }: { label?: string }) {
+  return (
+    <span className="inline-flex items-center gap-[5px] font-display text-xs leading-[1.2] font-medium text-success">
+      <CheckIcon className="size-[13px]" />{label}
+    </span>
   );
 }

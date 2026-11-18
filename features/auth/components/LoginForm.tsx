@@ -5,15 +5,19 @@ import "@/lib/amplify";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 
 import Input from "@/components/Input";
+import { buttonClass, LINK_CLASS } from "@/components/ui/button";
+import Field, { FormAlert, Spinner } from "@/components/ui/Field";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to-browser";
 import AuthChallenge, {
   getChallengeToken,
   type TurnstileInstance,
 } from "./AuthChallenge";
+import AuthShell, { SampleCourseCard } from "./AuthShell";
+import PasswordInput from "./PasswordInput";
+import TurnstileNote from "./TurnstileNote";
 
 export default function LoginForm() {
   const challenge = useRef<TurnstileInstance>(null);
@@ -73,124 +77,60 @@ export default function LoginForm() {
   }
 
   return (
-    <form
-      onSubmit={handleSignIn}
-      className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-10"
+    <AuthShell
+      title="Log in"
+      subtitle="Welcome back. Log in to see who offers help with your courses and to manage your profile."
+      aside={{
+        heading: "Pick up where you left off.",
+        text: "Courses, Help Offers and the students who can help, all in one place.",
+        visual: (
+          <div className="relative h-[300px]">
+            <SampleCourseCard code="STA 2000" title="Business Statistics I" className="absolute top-0 left-[4%] -rotate-3" />
+            <SampleCourseCard code="ACC 2101" title="Principles of Accounting" className="absolute top-[100px] left-[16%] rotate-2" />
+            <SampleCourseCard code="CIS 3400" title="Database Management Systems" className="absolute top-[200px] left-[6%] -rotate-1" />
+          </div>
+        ),
+      }}
     >
-      {/* LOGO AND WELCOME */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-5 flex justify-center">
-          <Image
-            src="/favicon.ico"
-            alt="FindMyStudents Logo"
-            width={90}
-            height={90}
-            unoptimized
-            priority
-            className="h-[90px] w-[90px] object-contain"
-          />
-        </div>
-
-        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-blue-600">
-          FindMyStudents
-        </p>
-
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-          Welcome Back
-        </h1>
-
-        <p className="mt-3 text-sm leading-6 text-zinc-600">
-          Log in to connect with your Baruch College community.
-        </p>
-      </div>
-
-      {/* LOGIN FIELDS */}
-      <div className="space-y-5">
-        <div>
-          <label
-            htmlFor="login-email"
-            className="mb-2 block text-sm font-semibold text-zinc-800"
-          >
-            Email Address
-          </label>
-
+      <form onSubmit={handleSignIn} className="flex flex-col gap-5" aria-describedby={error ? "login-error" : undefined}>
+        <Field label="Email" htmlFor="login-email">
           <Input
             id="login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email address"
+            placeholder="you@example.com"
             autoComplete="email"
             required
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label
-            htmlFor="login-password"
-            className="mb-2 block text-sm font-semibold text-zinc-800"
-          >
-            Password
-          </label>
-
-          <Input
+        <Field label="Password" htmlFor="login-password">
+          <PasswordInput
             id="login-password"
-            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
             autoComplete="current-password"
             required
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-zinc-900"
           />
-        </div>
+        </Field>
 
-        {/* SECURITY VERIFICATION */}
-        <div className="min-w-0 overflow-hidden">
-          <AuthChallenge
-            ref={challenge}
-            action="login"
-          />
-        </div>
+        <TurnstileNote>
+          <AuthChallenge ref={challenge} action="login" />
+        </TurnstileNote>
 
-        {/* ERROR MESSAGE */}
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-          >
-            {error}
-          </p>
-        )}
+        {error && <FormAlert id="login-error">{error}</FormAlert>}
 
-        {/* LOGIN BUTTON */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
-        >
-          {loading ? "Logging In..." : "Log In"}
+        <button type="submit" disabled={loading} className={buttonClass({ size: "lg", block: true })}>
+          {loading && <Spinner />}
+          {loading ? "Logging in…" : "Log in"}
         </button>
-      </div>
+      </form>
 
-      {/* SIGNUP LINK */}
-      <p className="mt-7 text-center text-sm text-zinc-600">
+      <p className="mt-6 text-muted">
         New to FindMyStudents?{" "}
-        <Link
-          href="/signup"
-          className="font-semibold text-blue-600 hover:underline"
-        >
-          Create an Account
-        </Link>
+        <Link href="/signup" className={LINK_CLASS}>Create an account</Link>
       </p>
-
-      {/* FOOTER */}
-      <div className="mt-7 border-t border-zinc-100 pt-5 text-center">
-        <p className="text-xs text-zinc-500">
-          Built for the Baruch College community
-        </p>
-      </div>
-    </form>
+    </AuthShell>
   );
 }

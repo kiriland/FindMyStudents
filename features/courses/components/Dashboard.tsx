@@ -1,33 +1,30 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import CourseSearch from "./CourseSearch";
-import styles from "../directory.module.css";
+import { CourseCardSkeleton } from "./CourseCard";
+
+function SearchLoading() {
+  return (
+    <div className="wrap pt-3.5 pb-[88px]" role="status" aria-label="Loading course directory">
+      <div className="h-14 rounded-2xl border-[1.5px] border-line-strong bg-surface sm:h-16" />
+      <div className="mt-[62px] grid gap-3.5 md:grid-cols-2 min-[900px]:ml-[272px]">
+        {Array.from({ length: 4 }, (_, index) => <CourseCardSkeleton key={index} />)}
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   return (
-    <main className={styles.directory}>
-      <div className={styles.container}>
-        <header className={styles.hero}>
-          <div>
-            <p className={styles.eyebrow}><span /> Baruch College · Course directory</p>
-            <h1>Find your course.<br /><span>Build your community.</span></h1>
-            <p className={styles.intro}>Explore the catalog, discover your next class, and connect with students ready to help.</p>
-          </div>
-          <div className={styles.heroNote}>
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m3 5 9-2 9 2v15l-9-2-9 2V5Zm9-2v15" /></svg>
-            <p>Your next connection<br /><strong>starts with a course.</strong></p>
-          </div>
-        </header>
-        <section id="explore-classes" aria-label="Explore Baruch courses" className={styles.courseSection}>
-          <Suspense fallback={<div className={styles.empty} role="status">Loading course directory…</div>}>
-            <CourseSearch />
-          </Suspense>
-        </section>
-        <aside className={styles.guidance}>
-          <div><h2>A little help goes a long way.</h2><p>Open a course to explore its details and discover students offering to help.</p></div>
-          <Link href="/">About FindMyStudents <span aria-hidden="true">→</span></Link>
-        </aside>
+    <main id="main" className="w-full flex-1">
+      <div className="wrap pt-[clamp(24px,3.4vw,40px)] pb-1">
+        <h1 className="font-display text-[clamp(34px,4.4vw,52px)] leading-[1.05] font-semibold tracking-[-0.04em]">Courses</h1>
+        <p className="mt-2.5 max-w-[56ch] text-lg text-muted">Search the Baruch catalogue, then open a course to see who offers help.</p>
       </div>
+      <section id="explore-classes" aria-label="Explore Baruch courses" className="scroll-mt-[68px]">
+        <Suspense fallback={<SearchLoading />}>
+          <CourseSearch />
+        </Suspense>
+      </section>
     </main>
   );
 }

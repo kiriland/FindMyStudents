@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { buttonClass } from "@/components/ui/button";
+import { ERROR_CLASS, Spinner } from "@/components/ui/Field";
 import { acceptConnectionRequest, declineConnectionRequest, withdrawConnectionRequest } from "../actions";
 import type { Outcome } from "../profiles";
-import styles from "../profile.module.css";
 
 type Props = { studentId: string; requestId: string; kind: "incoming" | "outgoing" };
 
@@ -20,17 +21,18 @@ export default function RequestActions({ studentId, requestId, kind }: Props) {
   }
 
   return (
-    <>
-      <div className={styles.actions}>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
         {kind === "incoming" ? <>
-          <button className={`${styles.button} ${styles.primary}`} disabled={busy} onClick={() => change(() => acceptConnectionRequest(studentId, requestId))}>Accept</button>
-          <button className={styles.button} disabled={busy} onClick={() => change(() => declineConnectionRequest(studentId, requestId))}>Decline</button>
+          <button type="button" className={buttonClass({ size: "sm" })} disabled={busy} onClick={() => change(() => acceptConnectionRequest(studentId, requestId))}>{busy && <Spinner />}Accept</button>
+          <button type="button" className={buttonClass({ variant: "secondary", size: "sm" })} disabled={busy} onClick={() => change(() => declineConnectionRequest(studentId, requestId))}>Decline</button>
         </> : (
-          <button className={styles.button} disabled={busy} onClick={() => change(() => withdrawConnectionRequest(studentId, requestId))}>{busy ? "Withdrawing…" : "Withdraw"}</button>
+          <button type="button" className={buttonClass({ variant: "secondary", size: "sm" })} disabled={busy} onClick={() => change(() => withdrawConnectionRequest(studentId, requestId))}>
+            {busy && <Spinner />}{busy ? "Withdrawing…" : "Withdraw"}
+          </button>
         )}
       </div>
-      {busy && kind === "incoming" && <p role="status" className={styles.hint}>Saving your response…</p>}
-      {feedback && <p role="alert" className={styles.fieldError}>{feedback}</p>}
-    </>
+      {feedback && <p role="alert" className={ERROR_CLASS}>{feedback}</p>}
+    </div>
   );
 }
