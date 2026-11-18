@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import styles from "../profile.module.css";
 
 /** Copies `value` to the clipboard and confirms with "Copied". */
-export default function CopyButton({ value, label, children }: { value: string; label: string; children: React.ReactNode }) {
+export default function CopyButton({ value, label, className, children }: { value: string; label: string; className: string; children: React.ReactNode }) {
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   useEffect(() => {
@@ -24,10 +23,10 @@ export default function CopyButton({ value, label, children }: { value: string; 
 
   return (
     <>
-      <button type="button" className={styles.contactLink} aria-label={label} onClick={copy}>
+      <button type="button" className={className} aria-label={label} onClick={copy}>
         {children}
       </button>
-      <span role="status" className={styles.copied}>
+      <span role="status" className={`font-display text-[13px] font-semibold ${status === "failed" ? "text-danger" : "text-success"}`}>
         {status === "copied" ? "Copied" : status === "failed" ? "Couldn’t copy" : ""}
       </span>
     </>

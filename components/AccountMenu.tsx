@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { ChevronIcon } from "@/components/ui/icons";
 
 type AccountMenuProps = {
   email: string | null;
@@ -10,10 +11,11 @@ type AccountMenuProps = {
   loggingOut: boolean;
 };
 
-const ITEM = "block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-zinc-700 hover:bg-zinc-100 focus-visible:bg-zinc-100 focus-visible:outline-none disabled:opacity-50";
+const ITEM =
+  "block w-full cursor-pointer rounded-lg px-2.5 py-[9px] text-left font-semibold text-ink-2 transition-colors duration-150 hover:bg-well hover:text-ink focus-visible:bg-well focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
- * The signed-in student's email (or "Signed in") as a button that discloses
+ * The signed-in student's email (or "Logged in") as a button that discloses
  * their account links. Esc closes it and refocuses the button; so does a click
  * outside, without moving focus.
  */
@@ -22,6 +24,7 @@ export default function AccountMenu({ email, profileHref, onLogout, loggingOut }
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
+  const initial = email?.trim()[0]?.toUpperCase() ?? "";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -46,21 +49,30 @@ export default function AccountMenu({ email, profileHref, onLogout, loggingOut }
       <button
         ref={buttonRef}
         type="button"
-        className="flex max-w-56 cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+        className="flex max-w-60 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface py-[3px] pr-2.5 pl-[3px] font-display text-sm leading-none font-medium text-ink-2 transition-colors duration-150 hover:border-line-strong aria-expanded:border-brand-200"
         title={email ?? undefined}
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="truncate">{email ?? "Signed in"}</span>
-        <span aria-hidden="true" className="shrink-0">▾</span>
+        <span aria-hidden="true" className="grid size-[34px] shrink-0 place-items-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-strong">
+          {initial || "•"}
+        </span>
+        <span className="truncate">{email ?? "Logged in"}</span>
+        <ChevronIcon className={`size-4 text-subtle transition-transform duration-250 ease-soft ${isOpen ? "rotate-180" : ""}`} />
       </button>
+      {/* Kept in the page so it can animate; invisible (and out of the tab order) while closed. */}
       <div
         id={panelId}
-        className="absolute right-0 top-full z-50 mt-1 flex min-w-40 flex-col rounded-xl border border-zinc-200 bg-white p-1 shadow-lg [&[hidden]]:hidden"
-        hidden={!isOpen}
+        className={`absolute top-[calc(100%+8px)] right-0 z-50 min-w-[220px] rounded-xl border border-line bg-surface p-1.5 shadow-float transition-[opacity,translate,visibility] duration-250 ease-soft ${
+          isOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1.5 opacity-0"
+        }`}
       >
-        <Link href={profileHref} className={ITEM} onClick={() => setIsOpen(false)}>Profile</Link>
+        <div className="mb-1 border-b border-line px-2.5 pt-2.5 pb-2">
+          <span className="block text-[13px] text-subtle">Logged in as</span>
+          <strong className="block truncate font-display text-sm font-semibold">{email ?? "your account"}</strong>
+        </div>
+        <Link href={profileHref} className={ITEM} onClick={() => setIsOpen(false)}>Your profile</Link>
         <button
           type="button"
           disabled={loggingOut}
@@ -70,7 +82,7 @@ export default function AccountMenu({ email, profileHref, onLogout, loggingOut }
             onLogout();
           }}
         >
-          {loggingOut ? "Logging out..." : "Log out"}
+          {loggingOut ? "Logging out…" : "Log out"}
         </button>
       </div>
     </div>
