@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { sendConnectionRequest, withdrawConnectionRequest } from "../actions";
+import { acceptConnectionRequest, declineConnectionRequest, sendConnectionRequest, withdrawConnectionRequest } from "../actions";
 import { REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Relationship } from "../connection-model";
 import type { HelpOfferView, Outcome } from "../profiles";
 import styles from "../profile.module.css";
@@ -34,7 +34,16 @@ export default function ConnectionControls({ studentId, relationship, offers, ow
         <p role="status">Requested</p>
         <button className={styles.button} disabled={busy} onClick={() => change(() => withdrawConnectionRequest(studentId, relationship.requestId))}>{busy ? "Withdrawing…" : "Withdraw"}</button>
       </>}
-      {relationship.status === "incoming" && <p role="status">This student has sent you a request.</p>}
+      {relationship.status === "incoming" && <>
+        <p>This student wants to connect about {relationship.courseCode}.</p>
+        {relationship.message && <p className={styles.bio}>{relationship.message}</p>}
+        <p className={styles.hint}>Accepting lets you both see each other’s contact details.</p>
+        <div className={styles.actions}>
+          <button className={`${styles.button} ${styles.primary}`} disabled={busy} onClick={() => change(() => acceptConnectionRequest(studentId, relationship.requestId))}>Accept</button>
+          <button className={styles.button} disabled={busy} onClick={() => change(() => declineConnectionRequest(studentId, relationship.requestId))}>Decline</button>
+        </div>
+        {busy && <p role="status">Saving your response…</p>}
+      </>}
       {relationship.status === "connected" && <p role="status">Connected</p>}
       {relationship.status === "declined" && <p role="status">Declined · you can ask again on {relationship.until.slice(0, 10)} (UTC).</p>}
       {relationship.status === "none" && offers.length > 0 && (open ? (

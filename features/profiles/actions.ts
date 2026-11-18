@@ -1,6 +1,6 @@
 "use server";
 
-import { sendRequest, withdrawRequest } from "./connections";
+import { acceptRequest, declineRequest, sendRequest, withdrawRequest } from "./connections";
 import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
@@ -112,6 +112,20 @@ export async function sendConnectionRequest(recipient: unknown, courseCode: unkn
 export async function withdrawConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
   return asSignedInStudent("Withdrawing a Connection Request", "Your request could not be withdrawn. Please try again.", async (viewer) => {
     const outcome = await withdrawRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function acceptConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Accepting a Connection Request", "Your request could not be accepted. Please try again.", async (viewer) => {
+    const outcome = await acceptRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function declineConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Declining a Connection Request", "Your request could not be declined. Please try again.", async (viewer) => {
+    const outcome = await declineRequest(viewer, text(otherId), text(requestId));
     return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
   });
 }

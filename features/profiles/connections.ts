@@ -6,7 +6,7 @@ import { db } from "@/lib/dynamodb";
 import { isUuid } from "@/lib/uuid";
 import { courseCodeKey } from "@/features/courses/course-model";
 import { profileKey, tableName, type Viewer } from "./profile-storage";
-import { MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type ConnectionOutcome, type Relationship } from "./connection-model";
+import { DECLINE_COOLDOWN_MS, MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type ConnectionOutcome, type Relationship } from "./connection-model";
 
 const RELATIONSHIP_PREFIX = "RELATIONSHIP#";
 const ATTEMPTS = 5;
@@ -15,8 +15,7 @@ type Item = Record<string, unknown>;
 type Pair = { sender: string; recipient: string; requestId: string; courseCode: string } & (
   | { status: "pending"; message: string; createdAt: string }
   | { status: "declined"; until: string }
-  | { status: "connected"; connectedAt: string }
-);
+) | { status: "connected"; students: [string, string]; courseCode: string; connectedAt: string };
 
 function pairKey(a: string, b: string): Key {
   const [first, second] = [a, b].sort();
@@ -54,15 +53,18 @@ async function readItems(keys: Key[], fields: string[]) {
   return items;
 }
 
-const PAIR_FIELDS = ["sender", "recipient", "requestId", "courseCode", "status", "message", "createdAt", "until", "connectedAt"];
+const PAIR_FIELDS = ["sender", "recipient", "requestId", "courseCode", "status", "message", "createdAt", "until", "connectedAt", "students"];
 
 function readPair(item: Item | undefined): Pair | null {
   if (!item) return null;
+  if (item.status === "connected") {
+    if (!Array.isArray(item.students) || item.students.length !== 2 || !item.students.every(isUuid) || typeof item.courseCode !== "string" || typeof item.connectedAt !== "string") throw new Error("Invalid Connection item.");
+    return { status: "connected", students: item.students as [string, string], courseCode: item.courseCode, connectedAt: item.connectedAt };
+  }
   if (![item.sender, item.recipient, item.requestId].every(isUuid) || typeof item.courseCode !== "string") throw new Error("Invalid relationship item.");
   const base = { sender: item.sender as string, recipient: item.recipient as string, requestId: item.requestId as string, courseCode: item.courseCode };
   if (item.status === "pending" && typeof item.message === "string" && typeof item.createdAt === "string") return { ...base, status: "pending", message: item.message, createdAt: item.createdAt };
   if (item.status === "declined" && typeof item.until === "string" && Number.isFinite(Date.parse(item.until))) return { ...base, status: "declined", until: item.until };
-  if (item.status === "connected" && typeof item.connectedAt === "string") return { ...base, status: "connected", connectedAt: item.connectedAt };
   throw new Error("Invalid relationship state.");
 }
 
@@ -193,4 +195,37 @@ export async function withdrawRequest(viewer: Viewer, otherId: string, requestId
     await pause(attempt);
   }
   throw new Error("Connections changed repeatedly while withdrawing. Try again.");
+}
+
+async function respondToRequest(viewer: Viewer, otherId: string, requestId: string, decision: "accept" | "decline"): Promise<ConnectionOutcome> {
+  if (!isUuid(otherId) || !isUuid(requestId) || otherId === viewer.studentId) return { ok: false, reason: "not-found" };
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    const pair = await getPair(viewer.studentId, otherId);
+    if (pair?.status !== "pending" || pair.recipient !== viewer.studentId || pair.sender !== otherId || pair.requestId !== requestId) return { ok: false, reason: "not-found" };
+    const snapshot = await outgoingSnapshot(pair.sender);
+    if (!snapshot) return { ok: false, reason: "no-profile" };
+    const now = Date.now();
+    const next: Pair = decision === "accept"
+      ? { status: "connected", students: [pair.sender, pair.recipient].sort() as [string, string], courseCode: pair.courseCode, connectedAt: new Date(now).toISOString() }
+      : { status: "declined", sender: pair.sender, recipient: pair.recipient, requestId, courseCode: pair.courseCode, until: new Date(now + DECLINE_COOLDOWN_MS).toISOString() };
+    if (await transact([
+      { Put: { TableName: tableName(), Item: { ...pairKey(pair.sender, pair.recipient), ...next },
+        ConditionExpression: "#status = :pending AND requestId = :id AND recipient = :recipient",
+        ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":pending": "pending", ":id": requestId, ":recipient": viewer.studentId } } },
+      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.sender, pair.recipient), ...next } } },
+      { Put: { TableName: tableName(), Item: { ...relationshipKey(pair.recipient, pair.sender), ...next } } },
+      counterUpdate(pair.sender, snapshot, -1),
+      { ConditionCheck: { TableName: tableName(), Key: profileKey(pair.recipient), ConditionExpression: "attribute_exists(pk)" } },
+    ])) return { ok: true };
+    await pause(attempt);
+  }
+  throw new Error("Connections changed repeatedly while responding. Try again.");
+}
+
+export async function acceptRequest(viewer: Viewer, otherId: string, requestId: string): Promise<ConnectionOutcome> {
+  return respondToRequest(viewer, otherId, requestId, "accept");
+}
+
+export async function declineRequest(viewer: Viewer, otherId: string, requestId: string): Promise<ConnectionOutcome> {
+  return respondToRequest(viewer, otherId, requestId, "decline");
 }
