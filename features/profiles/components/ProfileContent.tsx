@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
 import { getProfile, getViewer, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-model";
-import { getConnectionsOverview, getRelationships } from "../connections";
+import { getConnectionsOverview, getRelationship } from "../connections";
 import Avatar from "./Avatar";
 import ConnectionControls from "./ConnectionControls";
 import ConnectionsSection from "./ConnectionsSection";
@@ -21,7 +21,7 @@ export default async function ProfileContent({ params }: { params: ProfileParams
   const profile = await getProfile(viewer, id);
   if (!profile) notFound();
   const overview = profile.isOwner ? await getConnectionsOverview(viewer) : null;
-  const relationship = profile.isOwner ? null : (await getRelationships(viewer, [id])).get(id)!;
+  const relationship = profile.isOwner ? null : await getRelationship(viewer, id);
   const ownProfile = !profile.isOwner && relationship?.status === "none" && profile.helpOffers.length
     ? await getProfile(viewer, viewer.studentId) : null;
   const hasContacts = !!(ownProfile?.isOwner && Object.values(ownProfile.contacts).some(Boolean));

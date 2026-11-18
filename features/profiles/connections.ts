@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { randomUUID } from "node:crypto";
 import { TransactionCanceledException } from "@aws-sdk/client-dynamodb";
 import { BatchGetCommand, paginateQuery, TransactWriteCommand, type BatchGetCommandOutput, type TransactWriteCommandInput } from "@aws-sdk/lib-dynamodb";
@@ -90,10 +91,13 @@ export async function getRelationships(viewer: Viewer, studentIds: string[]) {
   }));
 }
 
+/** The viewer's relationship with one student, read once per request however many times it is asked for. */
+export const getRelationship = cache(async (viewer: Viewer, studentId: string): Promise<Relationship> =>
+  (await getRelationships(viewer, [studentId])).get(studentId) ?? { status: "none" });
+
 /** Whether the viewer and this student have a Connection, so each may see the other's contact details. */
 export async function isConnected(viewer: Viewer, studentId: string) {
-  if (!isUuid(studentId) || studentId === viewer.studentId) return false;
-  return (await getPair(viewer.studentId, studentId))?.status === "connected";
+  return (await getRelationship(viewer, studentId)).status === "connected";
 }
 
 async function relationshipPairs(studentId: string) {
