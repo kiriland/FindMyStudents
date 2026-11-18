@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import styles from "../discovery.module.css";
+import styles from "../course.module.css";
 
 export default function CourseDescription({ description, sourceUrl }: { description: string; sourceUrl: string }) {
   const [expanded, setExpanded] = useState(false);

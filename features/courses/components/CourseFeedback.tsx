@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { COURSE_HEADING_ID, discoveryHref } from "../course-model";
-import styles from "../discovery.module.css";
+import styles from "../course.module.css";
 
 export function CourseLoading() {
   return <p role="status" className={styles.note}>Loading course details…</p>;

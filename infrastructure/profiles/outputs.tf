@@ -1,7 +1,3 @@
-output "aws_region" {
-  value = var.aws_region
-}
-
 output "user_pool_id" {
   description = "Value for the NEXT_PUBLIC_COGNITO_USER_POOL_ID GitHub variable and .env.local."
   value       = aws_cognito_user_pool.students.id

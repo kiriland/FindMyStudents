@@ -49,8 +49,9 @@ The threshold and categories are constants in
 
 ## Prerequisites
 
-Terraform 1.6+, AWS CLI v2, and authenticated AWS access. The defaults create
-everything in `us-east-1`. To change the region or resource names:
+Terraform 1.6+, AWS CLI v2, and authenticated AWS access. Everything is
+created in `us-east-1`, the region the app is hardcoded to. To change resource
+names or other settings:
 
 ```bash
 cp infrastructure/profiles/terraform.tfvars.example \

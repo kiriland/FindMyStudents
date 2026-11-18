@@ -60,12 +60,12 @@ business concerns grouped into feature modules.
 ```text
 app/                 # Routes and layouts only
 ├── (auth)/           # Login, signup, and confirmation routes
-├── (dashboard)/      # Authenticated dashboard
+├── (courses)/        # Course directory (/dashboard) and course pages
 └── (profiles)/       # Student Profiles at /students/[id]
 components/           # Shared UI primitives
 features/
 ├── auth/             # Cognito auth client, server session, and auth components
-├── dashboard/        # Course queries and dashboard components
+├── courses/          # Course catalogue, search, and course pages
 └── profiles/         # Profiles module (server-only) and Profile components
 lib/                 # Shared infrastructure configuration
 ```
@@ -106,9 +106,9 @@ use `./scripts/deploy-course-importer.sh`. See
 [the importer setup and operations guide](infrastructure/course-importer/README.md)
 for prerequisites, four semester schedules, and manual console runs.
 
-The app reads the existing `classes` table in `us-east-1`. No seed command is needed. `data/classes.json` is a reference copy of the two sample courses, not the app's data source.
+The app reads the existing `classes` table in `us-east-1`. No seed command is needed.
 
-The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/dashboard/`.
+The table uses `school` as the partition key and `courseCode` as the sort key, both String. The AWS connection stays in `lib/dynamodb.ts`; course queries and UI stay in `features/courses/`.
 
 Set `DYNAMODB_TABLE_NAME=classes` on the deployed runtime and give its role `dynamodb:Query` permission on this table. AWS credentials are used only on the server.
 

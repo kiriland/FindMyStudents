@@ -233,9 +233,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "pictures" {
   }
 }
 
-# The app's Web Function reads and writes Profiles and Help Offers. Adding and
-# removing Help Offers runs these inside TransactWriteItems, which is
-# authorised per item action and needs no action of its own.
+# The app's Web Function reads and writes Profiles and Help Offers.
 resource "aws_iam_role_policy" "app_profiles_table" {
   name = "${var.name}-table"
   role = local.app_role_name

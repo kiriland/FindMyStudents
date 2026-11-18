@@ -9,7 +9,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  # Fixed: the app's AWS clients and deploy.yml use us-east-1 too.
+  region = "us-east-1"
   default_tags {
     tags = { Project = "FindMyStudents", ManagedBy = "Terraform", Component = "profiles" }
   }

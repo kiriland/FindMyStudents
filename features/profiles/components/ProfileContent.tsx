@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
 import { getProfile, getViewer, type ProfileView } from "../profiles";
-import { profileHref } from "../profile-href";
+import { profileHref } from "../profile-model";
 import Avatar from "./Avatar";
 import ContactDetails from "./ContactDetails";
 import HelpOfferEditor from "./HelpOfferEditor";
@@ -20,10 +20,10 @@ export default async function ProfileContent({ params }: { params: ProfileParams
   return (
     <article aria-labelledby="profile-name">
       <header className={styles.header}>
-        <Avatar className={styles.avatar} initials={profile.initials} pictureUrl={profile.pictureUrl} />
+        <Avatar size="large" initials={profile.initials} pictureUrl={profile.pictureUrl} />
         <h1 id="profile-name" className={styles.name}>{profile.displayName}</h1>
       </header>
-      {profile.isOwner && profile.contacts ? (
+      {profile.isOwner ? (
         <>
           <OwnProfile bio={profile.bio} hasPicture={profile.pictureUrl !== null} contacts={profile.contacts}>
             <ProfileDetails profile={profile} />

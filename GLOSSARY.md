@@ -20,6 +20,10 @@ _Avoid_: Class, Section, Assignment
 What other students can see about a student: their name (first name and last initial), profile picture, bio, Help Offers and, with a **Connection**, their contact details. Every student has one.
 _Avoid_: Account (the login identity, which other students never see)
 
+**Viewer**:
+The signed-in student a page or change acts for. A Viewer always has a **Profile**, and decides what of other Profiles they may see. Signed-out visitors have no Viewer.
+_Avoid_: User, Account (the login identity)
+
 **Connection Request**:
 A student's request to a **Volunteer**, about one **Course**, to see the Volunteer's contact details. The Volunteer accepts or declines it.
 _Avoid_: Contact Request

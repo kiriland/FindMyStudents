@@ -6,7 +6,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from "sharp";
 import { s3 } from "@/lib/s3";
 import { isUuid } from "@/lib/uuid";
-import { PICTURE_MAX_BYTES, type PictureType } from "./picture-rules";
+import { PICTURE_MAX_BYTES, type PictureType } from "./profile-model";
 
 /**
  * Profile picture storage, used only by the Profiles module. Uploads land in
@@ -50,11 +50,6 @@ function quarantineKey({ studentId, uploadId }: QuarantinedUpload) {
 
 /** Upload IDs come from `randomUUID()`, so anything else was never issued. */
 export const isUploadId = isUuid;
-
-/** Where a picture is published. Each upload gets a new key, so old links never show a new picture. */
-function pictureKey({ studentId, uploadId }: QuarantinedUpload) {
-  return `${PICTURE_PREFIX}${studentId}/${uploadId}`;
-}
 
 export function isPictureKey(value: unknown): value is string {
   return typeof value === "string" && value.startsWith(PICTURE_PREFIX);
@@ -131,9 +126,12 @@ export async function cleanPicture(bytes: Uint8Array): Promise<CleanPicture | nu
   }
 }
 
-/** Publishes an upload's cleaned picture under a new key and returns that key. */
-export async function publishPicture(upload: QuarantinedUpload, picture: CleanPicture) {
-  const key = pictureKey(upload);
+/**
+ * Publishes a student's cleaned picture under a key never used before, and
+ * returns that key. New keys also mean old links never show a new picture.
+ */
+export async function publishPicture(studentId: string, picture: CleanPicture) {
+  const key = `${PICTURE_PREFIX}${studentId}/${randomUUID()}`;
   await s3.send(new PutObjectCommand({
     Bucket: bucketName(),
     Key: key,

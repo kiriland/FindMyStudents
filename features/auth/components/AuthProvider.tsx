@@ -1,5 +1,7 @@
 "use client";
 
+// Configures Amplify in the browser, before anything here signs in or reads the session.
+import "@/lib/amplify";
 import { createContext, useContext, useEffect, useState } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";

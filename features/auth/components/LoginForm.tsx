@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
-import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { signInWithEmail } from "@/features/auth/auth-client";
 import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to-browser";
@@ -165,13 +164,13 @@ export default function LoginForm() {
         )}
 
         {/* LOGIN BUTTON */}
-        <Button
+        <button
           type="submit"
           disabled={loading}
           className="w-full justify-center rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700"
         >
           {loading ? "Logging In..." : "Log In"}
-        </Button>
+        </button>
       </div>
 
       {/* SIGNUP LINK */}

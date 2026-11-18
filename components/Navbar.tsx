@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/features/auth/components/AuthProvider";
-import { profileHref } from "@/features/profiles/profile-href";
+import { profileHref } from "@/features/profiles/profile-model";
 import AccountMenu from "./AccountMenu";
 
 export default function Navbar() {

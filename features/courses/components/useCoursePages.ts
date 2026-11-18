@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useState } from "react";
-import { queryString, withQuery } from "../course-model";
+import { fetchCoursePage, queryString } from "../course-model";
 import type { CoursePage, CourseQuery } from "../course-model";
 
 // Keep nearby history entries without accumulating the catalogue.
@@ -33,10 +33,8 @@ export function useCoursePages(queryKey: string, onNormalize: (query: CourseQuer
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(withQuery("/api/courses", queryKey), { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load courses.");
-        const data: CoursePage = await response.json();
+    fetchCoursePage(queryKey, controller.signal)
+      .then((data) => {
         if (controller.signal.aborted) return;
         const resultKey = queryString(data.query);
         setDepartments(data.departments);

@@ -43,6 +43,13 @@ export function withQuery(path: string, params: string) {
   return params ? `${path}?${params}` : path;
 }
 
+/** One page of matching Courses from the courses API. For the browser; the server calls `findCourses`. */
+export async function fetchCoursePage(params: string, signal: AbortSignal): Promise<CoursePage> {
+  const response = await fetch(withQuery("/api/courses", params), { signal, cache: "no-store" });
+  if (!response.ok) throw new Error("Could not load courses.");
+  return response.json();
+}
+
 export function discoveryHref(query: CourseQuery = EMPTY_QUERY) {
   return withQuery(DISCOVERY_PATH, queryString(query));
 }

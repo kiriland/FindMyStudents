@@ -1,7 +1,7 @@
 import { faPhone } from "@fortawesome/free-solid-svg-icons/faPhone";
 import { faDiscord } from "@fortawesome/free-brands-svg-icons/faDiscord";
 import { faInstagram } from "@fortawesome/free-brands-svg-icons/faInstagram";
-import { CONTACT_FIELDS, type ContactField, type Contacts } from "../profile-fields";
+import { CONTACT_FIELDS, type ContactField, type Contacts } from "../profile-model";
 import CopyButton from "./CopyButton";
 import Icon from "./Icon";
 import styles from "../profile.module.css";

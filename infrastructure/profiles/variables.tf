@@ -1,8 +1,3 @@
-variable "aws_region" {
-  type    = string
-  default = "us-east-1"
-}
-
 variable "name" {
   description = "Name of the user pool and table; the app client adds a -web suffix."
   type        = string

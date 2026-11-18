@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveProfile, type ProfileFormState } from "../actions";
 import PictureEditor from "./PictureEditor";
-import { BIO_MAX_LENGTH, bioLength, CONTACT_FIELDS, type ContactField, type Contacts } from "../profile-fields";
+import { BIO_MAX_LENGTH, bioLength, CONTACT_FIELDS, CONTACT_RULES, type ContactField, type Contacts } from "../profile-model";
 import styles from "../profile.module.css";
 
 type OwnProfileProps = {
@@ -61,12 +61,11 @@ export default function OwnProfile({ bio, hasPicture, contacts, children }: OwnP
   );
 }
 
-type ContactInput = { label: string; hint: string; type: string; autoComplete: string; placeholder: string };
-
-const CONTACT_INPUTS: Record<ContactField, ContactInput> = {
-  phone: { label: "Phone", hint: "Digits, +, spaces, - and ( ).", type: "tel", autoComplete: "tel", placeholder: "+1 (212) 555-0123" },
-  discord: { label: "Discord username", hint: "2–32 lowercase letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "username" },
-  instagram: { label: "Instagram handle", hint: "Up to 30 letters, numbers, periods or underscores.", type: "text", autoComplete: "off", placeholder: "handle" },
+// How each contact field is typed. Its label and rules come from the model.
+const CONTACT_INPUTS: Record<ContactField, { type: string; autoComplete: string; placeholder: string }> = {
+  phone: { type: "tel", autoComplete: "tel", placeholder: "+1 (212) 555-0123" },
+  discord: { type: "text", autoComplete: "off", placeholder: "username" },
+  instagram: { type: "text", autoComplete: "off", placeholder: "handle" },
 };
 
 type FormProps = { bio: string; contacts: Contacts; onDone: () => void };
@@ -77,14 +76,14 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
   const [contactValues, setContactValues] = useState(
     () => Object.fromEntries(CONTACT_FIELDS.map((field) => [field, contacts[field] ?? ""])) as Record<ContactField, string>,
   );
-  const [state, formAction, isSaving] = useActionState<ProfileFormState, FormData>(saveProfile, { status: "idle" });
+  const [state, formAction, isSaving] = useActionState<ProfileFormState, FormData>(saveProfile, null);
 
   // Leave edit mode once the save has committed, together with the refreshed
   // Profile, so the old values never flash back.
   useEffect(() => {
-    if (state.status === "done") onDone();
+    if (state?.ok) onDone();
   }, [state, onDone]);
-  const fieldErrors = state.status === "invalid" ? state.fieldErrors : {};
+  const fieldErrors = state && "fieldErrors" in state ? state.fieldErrors : {};
   const length = bioLength(bio);
 
   return (
@@ -119,29 +118,32 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
           Optional. <span className={styles.private}>Only visible to you</span> for now.
         </p>
         {CONTACT_FIELDS.map((field) => {
-          const { label, hint, ...input } = CONTACT_INPUTS[field];
+          const { label, hint } = CONTACT_RULES[field];
+          // A rejected value shows the rule it broke as an error, in place of the hint.
           const error = fieldErrors[field];
           return (
             <div key={field} className={styles.field}>
               <label htmlFor={`profile-${field}`}>{label}</label>
-              <p id={`profile-${field}-hint`} className={styles.hint}>{hint}</p>
+              {/* Keyed, so an error is a new alert element, which screen readers announce. */}
+              {error
+                ? <p key="error" id={`profile-${field}-note`} role="alert" className={styles.fieldError}>{error}</p>
+                : <p key="hint" id={`profile-${field}-note`} className={styles.hint}>{hint}</p>}
               <input
                 id={`profile-${field}`}
                 name={field}
-                {...input}
+                {...CONTACT_INPUTS[field]}
                 maxLength={64}
                 value={contactValues[field]}
                 aria-invalid={error ? true : undefined}
-                aria-describedby={`profile-${field}-hint${error ? ` profile-${field}-error` : ""}`}
+                aria-describedby={`profile-${field}-note`}
                 onChange={(event) => setContactValues((values) => ({ ...values, [field]: event.target.value }))}
               />
-              {error && <p id={`profile-${field}-error`} role="alert" className={styles.fieldError}>{error}</p>}
             </div>
           );
         })}
       </fieldset>
 
-      {state.status === "failed" && <p role="alert" className={styles.fieldError}>{state.message}</p>}
+      {state && "message" in state && <p role="alert" className={styles.fieldError}>{state.message}</p>}
       <div className={styles.actions}>
         <button type="submit" className={`${styles.button} ${styles.primary}`} disabled={isSaving}>
           {isSaving ? "Saving…" : "Save"}

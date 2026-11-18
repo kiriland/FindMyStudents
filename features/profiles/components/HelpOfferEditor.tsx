@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { courseCodeKey, withQuery, type CoursePage, type CourseSummary } from "@/features/dashboard/course-model";
-import { offerHelp, withdrawHelp, type ChangeResult } from "../actions";
-import { MAX_HELP_OFFERS } from "../help-offers";
-import type { HelpOfferView } from "../profiles";
+import { courseCodeKey, fetchCoursePage, type CoursePage, type CourseSummary } from "@/features/courses/course-model";
+import { offerHelp, withdrawHelp } from "../actions";
+import { MAX_HELP_OFFERS } from "../profile-model";
+import type { HelpOfferView, Outcome } from "../profiles";
 import styles from "../profile.module.css";
 
 const SHOWN_RESULTS = 8;
@@ -23,10 +23,8 @@ function useCourseSearch(text: string): Search {
     if (!query) return;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      fetch(withQuery("/api/courses", new URLSearchParams({ q: query }).toString()), { signal: controller.signal, cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) throw new Error("Could not load courses.");
-          const page: CoursePage = await response.json();
+      fetchCoursePage(new URLSearchParams({ q: query }).toString(), controller.signal)
+        .then((page) => {
           if (!controller.signal.aborted) setResult({ query, status: "done", page });
         })
         .catch(() => {
@@ -59,13 +57,13 @@ export default function HelpOfferEditor({ offers }: { offers: HelpOfferView[] })
   const offered = new Set(offers.map((offer) => courseCodeKey(offer.courseCode)));
   const atLimit = offers.length >= MAX_HELP_OFFERS;
 
-  function changeHelpOffer(courseCode: string, change: (courseCode: string) => Promise<ChangeResult>) {
+  function changeHelpOffer(courseCode: string, change: (courseCode: string) => Promise<Outcome>) {
     setBusyCode(courseCode);
     setMessage("");
     startTransition(async () => {
       // A rejected action (e.g. the network drops) must still free the button.
-      const result = await change(courseCode).catch((): ChangeResult => ({ status: "failed", message: "That course could not be changed. Please try again." }));
-      if (result.status === "failed") setMessage(result.message);
+      const result = await change(courseCode).catch((): Outcome => ({ ok: false, message: "That course could not be changed. Please try again." }));
+      if (!result.ok) setMessage(result.message);
       setBusyCode(null);
     });
   }

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { confirmPicture, deletePicture, requestPictureUpload } from "../actions";
-import { checkPictureFile, PICTURE_SIZE_ERROR, PICTURE_TYPES } from "../picture-rules";
+import { checkPictureFile, PICTURE_SIZE_ERROR, PICTURE_TYPES } from "../profile-model";
 import styles from "../profile.module.css";
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "removing" } | { kind: "done"; message: string } | { kind: "error"; message: string };
@@ -29,7 +29,7 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
 
   async function save(file: File): Promise<Status> {
     const started = await requestPictureUpload(file.type, file.size);
-    if (started.status === "failed") return { kind: "error", message: started.message };
+    if (!started.ok) return { kind: "error", message: started.message };
     const body = new FormData();
     for (const [name, value] of Object.entries(started.upload.fields)) body.append(name, value);
     // S3 reads the form fields in order and needs the file last.
@@ -40,12 +40,12 @@ export default function PictureEditor({ hasPicture }: { hasPicture: boolean }) {
       return { kind: "error", message: text.includes("EntityTooLarge") ? PICTURE_SIZE_ERROR : UPLOAD_FAILED };
     }
     const confirmed = await confirmPicture(started.upload.uploadId);
-    return confirmed.status === "done" ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message };
+    return confirmed.ok ? { kind: "done", message: "Picture saved." } : { kind: "error", message: confirmed.message };
   }
 
   async function clear(): Promise<Status> {
     const result = await deletePicture();
-    return result.status === "done" ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message };
+    return result.ok ? { kind: "done", message: "Picture removed." } : { kind: "error", message: result.message };
   }
 
   function upload(file: File) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { discoveryHref } from "@/features/dashboard/course-model";
+import { discoveryHref } from "@/features/courses/course-model";
 import styles from "../profile.module.css";
 
 export function ProfileLoading() {
