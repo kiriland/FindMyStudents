@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, paginateListObjectsV2, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import sharp from "sharp";
@@ -144,6 +144,15 @@ export async function publishPicture(studentId: string, picture: CleanPicture) {
 
 export async function deletePictureObject(key: string) {
   await s3.send(new DeleteObjectCommand({ Bucket: bucketName(), Key: key }));
+}
+
+/** Deletes every picture and quarantined upload a student has, for account deletion. */
+export async function deleteStudentPictures(studentId: string) {
+  for (const prefix of [`${PICTURE_PREFIX}${studentId}/`, `${QUARANTINE_PREFIX}${studentId}/`]) {
+    for await (const page of paginateListObjectsV2({ client: s3 }, { Bucket: bucketName(), Prefix: prefix })) {
+      await Promise.all((page.Contents ?? []).flatMap((object) => (object.Key ? [deletePictureObject(object.Key)] : [])));
+    }
+  }
 }
 
 /**

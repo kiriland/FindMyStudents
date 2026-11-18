@@ -4,7 +4,7 @@ import { acceptRequest, declineRequest, removeConnection, sendRequest, withdrawR
 import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
-import { addHelpOffer, confirmPictureUpload, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
+import { addHelpOffer, confirmPictureUpload, deleteAccountData, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
 
 /** What the edit-mode form shows: nothing yet (null), or how the last save went. */
 export type ProfileFormState = ProfileEditOutcome | Outcome | null;
@@ -135,4 +135,13 @@ export async function removeConnectionWith(otherId: unknown): Promise<Outcome> {
     const outcome = await removeConnection(viewer, text(otherId));
     return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
   });
+}
+
+/**
+ * Deletes the signed-in student's data once they have confirmed. Nothing is
+ * refreshed: the browser deletes their login next and leaves the page.
+ */
+export async function deleteAccount(email: unknown, phrase: unknown): Promise<Outcome> {
+  return asSignedInStudent("Deleting an account", "Your account could not be deleted. Please try again.", (viewer) =>
+    deleteAccountData(viewer, text(email), text(phrase)));
 }

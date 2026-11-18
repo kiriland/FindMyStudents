@@ -10,6 +10,9 @@ export function profileHref(studentId: string) {
   return `/students/${encodeURIComponent(studentId)}`;
 }
 
+/** What a student types, with their email, to confirm deleting their account. */
+export const DELETE_ACCOUNT_PHRASE = "delete my account";
+
 /** The most Help Offers one student may have at a time. */
 export const MAX_HELP_OFFERS = 15;
 

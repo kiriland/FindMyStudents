@@ -7,11 +7,11 @@ import { isUuid } from "@/lib/uuid";
 import { getSignedInStudent } from "@/features/auth/server-session";
 import { getCourse } from "@/features/courses/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/courses/course-model";
-import { checkPictureFile, CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseContact, PICTURE_CONTENT_ERROR, profileHref, type ContactField, type Contacts } from "./profile-model";
+import { checkPictureFile, CONTACT_FIELDS, DELETE_ACCOUNT_PHRASE, MAX_HELP_OFFERS, parseBio, parseContact, PICTURE_CONTENT_ERROR, profileHref, type ContactField, type Contacts } from "./profile-model";
 import { moderatePicture } from "./moderation";
-import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
+import { cleanPicture, createUpload, deletePictureObject, deleteStudentPictures, deleteUpload, isPictureKey, isUploadId, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
 import { tableName, profileKey, ignoreConditionFailure, readProfile, shownProfile, getProfiles, type Viewer, type Outcome } from "./profile-storage";
-import { isConnected } from "./connections";
+import { deleteAllConnections, isConnected } from "./connections";
 
 export type { Viewer, Outcome } from "./profile-storage";
 
@@ -362,4 +362,35 @@ async function deleteOldPicture(viewer: Viewer, key: string) {
   } catch (error) {
     console.error("Deleting a replaced picture failed", { studentId: viewer.studentId, key, error });
   }
+}
+
+/**
+ * Deletes the Viewer's Profile, Help Offers, pictures, Connection Requests and
+ * Connections, once they have typed their account email and
+ * DELETE_ACCOUNT_PHRASE. The browser then deletes their Cognito user, so a
+ * failure part way never leaves data that its owner can no longer delete.
+ */
+export async function deleteAccountData(viewer: Viewer, email: string, phrase: string): Promise<Outcome> {
+  const student = await getSignedInStudent();
+  if (student?.id !== viewer.studentId) return { ok: false, message: "Your session has ended. Log in again to delete your account." };
+  if (!student.email || email.trim().toLowerCase() !== student.email.toLowerCase() || phrase.trim().toLowerCase() !== DELETE_ACCOUNT_PHRASE) {
+    return { ok: false, message: `Type your email and “${DELETE_ACCOUNT_PHRASE}” to confirm.` };
+  }
+  // The Profile goes first: requests to or from a student without one are
+  // refused, so none can be added while the rest is deleted.
+  await db.send(new DeleteCommand({ TableName: tableName(), Key: profileKey(viewer.studentId) }));
+  knownProfiles.delete(viewer.studentId);
+  await deleteAllConnections(viewer);
+  const keys: Record<string, unknown>[] = [];
+  for await (const page of paginateQuery({ client: db }, {
+    TableName: tableName(),
+    KeyConditionExpression: "pk = :pk",
+    ExpressionAttributeValues: { ":pk": profileKey(viewer.studentId).pk },
+    ProjectionExpression: "pk, sk",
+    ConsistentRead: true,
+  })) keys.push(...(page.Items ?? []));
+  // Help Offers, which also takes them off course pages.
+  await Promise.all(keys.map((key) => db.send(new DeleteCommand({ TableName: tableName(), Key: key }))));
+  await deleteStudentPictures(viewer.studentId);
+  return { ok: true };
 }

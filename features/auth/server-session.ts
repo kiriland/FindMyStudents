@@ -9,6 +9,7 @@ export type SignedInStudent = {
   id: string;
   givenName: string;
   familyName: string;
+  email: string;
 };
 
 /**
@@ -29,5 +30,6 @@ export const getSignedInStudent = cache(async (): Promise<SignedInStudent | null
     id: claims.sub,
     givenName: typeof claims.given_name === "string" ? claims.given_name.trim() : "",
     familyName: typeof claims.family_name === "string" ? claims.family_name.trim() : "",
+    email: typeof claims.email === "string" ? claims.email : "",
   };
 });
