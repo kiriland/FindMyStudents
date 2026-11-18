@@ -11,10 +11,11 @@ import { checkPictureFile, CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseConta
 import { moderatePicture } from "./moderation";
 import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
 import { tableName, profileKey, ignoreConditionFailure, readProfile, shownProfile, getProfiles, type Viewer, type Outcome } from "./profile-storage";
+import { isConnected } from "./connections";
 
 export type { Viewer, Outcome } from "./profile-storage";
 
-/** A Profile as one Viewer may see it. Only its owner gets contact details. */
+/** A Profile as one Viewer may see it. Only its owner and their Connections get contact details. */
 export type ProfileView = {
   id: string;
   displayName: string;
@@ -25,7 +26,7 @@ export type ProfileView = {
   bio: string;
   /** Oldest first, in the order the student added them. */
   helpOffers: HelpOfferView[];
-} & ({ isOwner: false } | { isOwner: true; contacts: Contacts });
+} & ({ isOwner: false; contacts: Contacts | null } | { isOwner: true; contacts: Contacts });
 
 /** A Help Offer as shown on a Profile: the Course it is for. */
 export type HelpOfferView = { courseCode: string; title: string; href: string };
@@ -130,7 +131,8 @@ export async function getProfile(viewer: Viewer, studentId: string): Promise<Pro
   // Student IDs are Cognito user IDs (`sub`), which are UUIDs.
   if (!isUuid(studentId)) return null;
   const isOwner = viewer.studentId === studentId;
-  const fields = ["sk", "studentId", "givenName", "familyName", "bio", "pictureKey", "courseCode", "courseTitle", "createdAt", ...(isOwner ? CONTACT_FIELDS : [])];
+  const seesContacts = isOwner || await isConnected(viewer, studentId);
+  const fields = ["sk", "studentId", "givenName", "familyName", "bio", "pictureKey", "courseCode", "courseTitle", "createdAt", ...(seesContacts ? CONTACT_FIELDS : [])];
   // The Profile and its Help Offers share a partition, so one query reads them all.
   const { Items: items = [] } = await db.send(new QueryCommand({
     TableName: tableName(),
@@ -148,7 +150,7 @@ export async function getProfile(viewer: Viewer, studentId: string): Promise<Pro
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map(({ courseCode, title }) => ({ courseCode, title, href: courseHref({ courseCode }) }));
   const shown = { id: studentId, ...(await shownProfile(profile)), helpOffers };
-  return isOwner ? { ...shown, isOwner, contacts: profile.contacts } : { ...shown, isOwner };
+  return isOwner ? { ...shown, isOwner, contacts: profile.contacts } : { ...shown, isOwner, contacts: seesContacts ? profile.contacts : null };
 }
 
 /**

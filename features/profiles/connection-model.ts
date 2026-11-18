@@ -1,4 +1,4 @@
-import { normalizeBio } from "./profile-model";
+import { normalizeBio, type Contacts } from "./profile-model";
 
 export const REQUEST_MESSAGE_MAX_LENGTH = 300;
 export const MAX_PENDING_OUTGOING = 20;
@@ -23,8 +23,10 @@ export type SentRequest = { student: RelatedStudent; courseCode: string } & (
   | { status: "declined"; until: string }
 );
 
-/** The viewer's own requests, visible only to them. */
-export type ConnectionsOverview = { incoming: IncomingRequest[]; sent: SentRequest[] };
+export type Connection = { student: RelatedStudent; courseCode: string; connectedAt: string; contacts: Contacts };
+
+/** The viewer's own requests and Connections, visible only to them. */
+export type ConnectionsOverview = { incoming: IncomingRequest[]; sent: SentRequest[]; connections: Connection[] };
 
 export function requestMessage(raw: string) {
   return normalizeBio(raw);
@@ -39,7 +41,7 @@ export function connectionRefusalMessage(refusal: ConnectionRefusal) {
     case "cooldown": return `You can ask again on ${refusal.until.slice(0, 10)} (UTC).`;
     case "limit": return `You already have ${MAX_PENDING_OUTGOING} pending requests. Wait for a response or withdraw one.`;
     case "message-too-long": return `Keep your message to ${REQUEST_MESSAGE_MAX_LENGTH} characters or fewer.`;
-    case "not-found": return "This request was withdrawn or already handled. Refresh to see the latest status.";
+    case "not-found": return "This was already withdrawn, handled or removed. Refresh to see the latest status.";
     case "no-profile": return "This profile is no longer available.";
   }
 }

@@ -38,7 +38,7 @@ export function parseBio(raw: string): FieldResult<string> {
 
 // Contact details
 
-/** The contact details a student may add. Each is optional and owner-only for now. */
+/** The contact details a student may add. Each is optional and visible only to the owner and their Connections. */
 export const CONTACT_FIELDS = ["phone", "discord", "instagram"] as const;
 export type ContactField = (typeof CONTACT_FIELDS)[number];
 export type Contacts = Partial<Record<ContactField, string>>;

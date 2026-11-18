@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { acceptConnectionRequest, declineConnectionRequest, sendConnectionRequest, withdrawConnectionRequest } from "../actions";
+import RemoveConnection from "./RemoveConnection";
 import { REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Relationship } from "../connection-model";
 import type { HelpOfferView, Outcome } from "../profiles";
 import styles from "../profile.module.css";
 
-type Props = { studentId: string; relationship: Relationship; offers: HelpOfferView[]; ownProfileHref: string; hasContacts: boolean };
+type Props = { studentId: string; displayName: string; relationship: Relationship; offers: HelpOfferView[]; ownProfileHref: string; hasContacts: boolean };
 
-export default function ConnectionControls({ studentId, relationship, offers, ownProfileHref, hasContacts }: Props) {
+export default function ConnectionControls({ studentId, displayName, relationship, offers, ownProfileHref, hasContacts }: Props) {
   const [open, setOpen] = useState(false);
   const [course, setCourse] = useState("");
   const [message, setMessage] = useState("");
@@ -44,7 +45,10 @@ export default function ConnectionControls({ studentId, relationship, offers, ow
         </div>
         {busy && <p role="status">Saving your response…</p>}
       </>}
-      {relationship.status === "connected" && <p role="status">Connected</p>}
+      {relationship.status === "connected" && <>
+        <p role="status">Connected</p>
+        <RemoveConnection studentId={studentId} displayName={displayName} label="Remove connection" />
+      </>}
       {relationship.status === "declined" && <p role="status">Declined · you can ask again on {relationship.until.slice(0, 10)} (UTC).</p>}
       {relationship.status === "none" && offers.length > 0 && (open ? (
         <form className={styles.form} onSubmit={(event) => { event.preventDefault(); change(() => sendConnectionRequest(studentId, selected, message)); }}>

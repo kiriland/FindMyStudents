@@ -2,19 +2,21 @@ import Link from "next/link";
 import { courseHref } from "@/features/courses/course-model";
 import type { ConnectionsOverview, RelatedStudent } from "../connection-model";
 import Avatar from "./Avatar";
+import { ContactList } from "./ContactDetails";
+import RemoveConnection from "./RemoveConnection";
 import RequestActions from "./RequestActions";
 import styles from "../profile.module.css";
 
 /** The owner's private Connections section. Only ever rendered for the owner. */
 export default function ConnectionsSection({ overview }: { overview: ConnectionsOverview }) {
-  const { incoming, sent } = overview;
+  const { incoming, sent, connections } = overview;
   return (
     <section className={styles.section} aria-labelledby="profile-connections">
       <div className={styles.sectionHeader}>
         <h2 id="profile-connections">Connections</h2>
         <span className={styles.private}>Only visible to you</span>
       </div>
-      {!incoming.length && !sent.length && <p className={styles.status}>No connections yet.</p>}
+      {!incoming.length && !sent.length && !connections.length && <p className={styles.status}>No connections yet.</p>}
       {incoming.length > 0 && (
         <div className={styles.group}>
           <h3>Requests for you</h3>
@@ -39,6 +41,20 @@ export default function ConnectionsSection({ overview }: { overview: Connections
                 {request.status === "pending"
                   ? <RequestActions studentId={request.student.id} requestId={request.requestId} kind="outgoing" />
                   : <p className={styles.status}>Declined · can ask again on {request.until.slice(0, 10)} (UTC).</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {connections.length > 0 && (
+        <div className={styles.group}>
+          <h3>Connections</h3>
+          <ul className={styles.requests}>
+            {connections.map((connection) => (
+              <li key={connection.student.id} className={styles.request}>
+                <Student student={connection.student} courseCode={connection.courseCode} />
+                <ContactList contacts={connection.contacts} empty="No contact details yet." />
+                <RemoveConnection studentId={connection.student.id} displayName={connection.student.displayName} label="Remove" />
               </li>
             ))}
           </ul>

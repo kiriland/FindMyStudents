@@ -35,25 +35,30 @@ const CONTACT_LINKS: Record<ContactField, (value: string) => React.ReactNode> = 
   ),
 };
 
-/** The owner's own contact details. Only ever rendered for the owner. */
-export default function ContactDetails({ contacts }: { contacts: Contacts }) {
+/** Contact details, or `empty` when there are none. */
+export function ContactList({ contacts, empty }: { contacts: Contacts; empty: string }) {
   const filled = CONTACT_FIELDS.flatMap((field) => {
     const value = contacts[field];
     return value ? [{ field, value }] : [];
   });
+  return filled.length ? (
+    <ul className={styles.contacts}>
+      {filled.map(({ field, value }) => <li key={field}>{CONTACT_LINKS[field](value)}</li>)}
+    </ul>
+  ) : (
+    <p className={styles.status}>{empty}</p>
+  );
+}
+
+/** A Profile's contact details. Only ever rendered for the owner or a Connection. */
+export default function ContactDetails({ contacts, isOwner }: { contacts: Contacts; isOwner: boolean }) {
   return (
     <section className={styles.section} aria-labelledby="profile-contacts">
       <div className={styles.sectionHeader}>
         <h2 id="profile-contacts">Contact details</h2>
-        <span className={styles.private}>Only visible to you</span>
+        {isOwner && <span className={styles.private}>Only visible to you and your Connections</span>}
       </div>
-      {filled.length ? (
-        <ul className={styles.contacts}>
-          {filled.map(({ field, value }) => <li key={field}>{CONTACT_LINKS[field](value)}</li>)}
-        </ul>
-      ) : (
-        <p className={styles.status}>No contact details yet. Add them with Edit profile.</p>
-      )}
+      <ContactList contacts={contacts} empty={isOwner ? "No contact details yet. Add them with Edit profile." : "No contact details yet."} />
     </section>
   );
 }

@@ -35,7 +35,7 @@ export default async function ProfileContent({ params }: { params: ProfileParams
         <>
           <OwnProfile bio={profile.bio} hasPicture={profile.pictureUrl !== null} contacts={profile.contacts}>
             <ProfileDetails profile={profile} />
-            <ContactDetails contacts={profile.contacts} />
+            <ContactDetails contacts={profile.contacts} isOwner />
           </OwnProfile>
           {/* Always editable, outside edit mode: it's what students change most. */}
           <HelpOfferEditor offers={profile.helpOffers} />
@@ -45,7 +45,8 @@ export default async function ProfileContent({ params }: { params: ProfileParams
         <>
           <ProfileDetails profile={profile} />
           <HelpOffers offers={profile.helpOffers} />
-          {relationship && <ConnectionControls studentId={id} relationship={relationship} offers={profile.helpOffers} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} />}
+          {profile.contacts && <ContactDetails contacts={profile.contacts} isOwner={false} />}
+          {relationship && <ConnectionControls studentId={id} displayName={profile.displayName} relationship={relationship} offers={profile.helpOffers} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} />}
         </>
       )}
     </article>

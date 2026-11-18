@@ -5,9 +5,9 @@ import { BatchGetCommand, paginateQuery, TransactWriteCommand, type BatchGetComm
 import { db } from "@/lib/dynamodb";
 import { isUuid } from "@/lib/uuid";
 import { courseCodeKey } from "@/features/courses/course-model";
-import { getProfiles, profileKey, shownProfile, tableName, type Viewer } from "./profile-storage";
-import { profileHref } from "./profile-model";
-import { DECLINE_COOLDOWN_MS, MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type ConnectionOutcome, type ConnectionsOverview, type IncomingRequest, type RelatedStudent, type Relationship, type SentRequest } from "./connection-model";
+import { getProfiles, profileKey, readProfile, shownProfile, tableName, type Viewer } from "./profile-storage";
+import { CONTACT_FIELDS, profileHref, type Contacts } from "./profile-model";
+import { DECLINE_COOLDOWN_MS, MAX_PENDING_OUTGOING, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Connection, type ConnectionOutcome, type ConnectionsOverview, type IncomingRequest, type RelatedStudent, type Relationship, type SentRequest } from "./connection-model";
 
 const RELATIONSHIP_PREFIX = "RELATIONSHIP#";
 const ATTEMPTS = 5;
@@ -90,6 +90,12 @@ export async function getRelationships(viewer: Viewer, studentIds: string[]) {
   }));
 }
 
+/** Whether the viewer and this student have a Connection, so each may see the other's contact details. */
+export async function isConnected(viewer: Viewer, studentId: string) {
+  if (!isUuid(studentId) || studentId === viewer.studentId) return false;
+  return (await getPair(viewer.studentId, studentId))?.status === "connected";
+}
+
 async function relationshipPairs(studentId: string) {
   const pairs: Pair[] = [];
   for await (const page of paginateQuery({ client: db }, {
@@ -138,7 +144,27 @@ export async function getConnectionsOverview(viewer: Viewer): Promise<Connection
     const student = students.get(pair.recipient);
     if (student) sent.push({ student, courseCode: pair.courseCode, status: "declined", until: pair.until });
   }
-  return { incoming, sent };
+  const connected = pairs.flatMap((pair) => (pair.status === "connected" ? [pair] : [])).sort((a, b) => b.connectedAt.localeCompare(a.connectedAt));
+  const otherOf = (pair: (typeof connected)[number]) => pair.students.find((id) => id !== me)!;
+  const connectedStudents = await withContacts(connected.map(otherOf));
+  const connections: Connection[] = connected.flatMap((pair) => {
+    const found = connectedStudents.get(otherOf(pair));
+    return found ? [{ ...found, courseCode: pair.courseCode, connectedAt: pair.connectedAt }] : [];
+  });
+  return { incoming, sent, connections };
+}
+
+// Only called with the viewer's Connections: nobody else's contact details are ever read.
+async function withContacts(studentIds: string[]) {
+  const items = await readItems(studentIds.map(profileKey), ["studentId", "givenName", "familyName", "pictureKey", ...CONTACT_FIELDS]);
+  const students = new Map<string, { student: RelatedStudent; contacts: Contacts }>();
+  await Promise.all([...items.values()].map(async (item) => {
+    const profile = readProfile(item);
+    if (!profile) return;
+    const { displayName, initials, pictureUrl } = await shownProfile(profile);
+    students.set(profile.studentId, { student: { id: profile.studentId, displayName, initials, pictureUrl, href: profileHref(profile.studentId) }, contacts: profile.contacts });
+  }));
+  return students;
 }
 
 async function outgoingSnapshot(studentId: string) {
@@ -280,4 +306,19 @@ export async function acceptRequest(viewer: Viewer, otherId: string, requestId: 
 
 export async function declineRequest(viewer: Viewer, otherId: string, requestId: string): Promise<ConnectionOutcome> {
   return respondToRequest(viewer, otherId, requestId, "decline");
+}
+
+export async function removeConnection(viewer: Viewer, otherId: string): Promise<ConnectionOutcome> {
+  if (!isUuid(otherId) || otherId === viewer.studentId) return { ok: false, reason: "not-found" };
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    if ((await getPair(viewer.studentId, otherId))?.status !== "connected") return { ok: false, reason: "not-found" };
+    if (await transact([
+      { Delete: { TableName: tableName(), Key: pairKey(viewer.studentId, otherId),
+        ConditionExpression: "#status = :connected", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":connected": "connected" } } },
+      { Delete: { TableName: tableName(), Key: relationshipKey(viewer.studentId, otherId) } },
+      { Delete: { TableName: tableName(), Key: relationshipKey(otherId, viewer.studentId) } },
+    ])) return { ok: true };
+    await pause(attempt);
+  }
+  throw new Error("Connections changed repeatedly while removing. Try again.");
 }

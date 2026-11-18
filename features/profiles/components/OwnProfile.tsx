@@ -115,7 +115,7 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
       <fieldset className={styles.contactFields}>
         <legend>Contact details</legend>
         <p className={styles.hint}>
-          Optional. <span className={styles.private}>Only visible to you</span> for now.
+          Optional. <span className={styles.private}>Only visible to you and your Connections</span>
         </p>
         {CONTACT_FIELDS.map((field) => {
           const { label, hint } = CONTACT_RULES[field];

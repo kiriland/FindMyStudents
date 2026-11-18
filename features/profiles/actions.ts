@@ -1,6 +1,6 @@
 "use server";
 
-import { acceptRequest, declineRequest, sendRequest, withdrawRequest } from "./connections";
+import { acceptRequest, declineRequest, removeConnection, sendRequest, withdrawRequest } from "./connections";
 import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
@@ -126,6 +126,13 @@ export async function acceptConnectionRequest(otherId: unknown, requestId: unkno
 export async function declineConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
   return asSignedInStudent("Declining a Connection Request", "Your request could not be declined. Please try again.", async (viewer) => {
     const outcome = await declineRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function removeConnectionWith(otherId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Removing a Connection", "The connection could not be removed. Please try again.", async (viewer) => {
+    const outcome = await removeConnection(viewer, text(otherId));
     return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
   });
 }
