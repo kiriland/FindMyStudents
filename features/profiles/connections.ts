@@ -322,3 +322,33 @@ export async function removeConnection(viewer: Viewer, otherId: string): Promise
   }
   throw new Error("Connections changed repeatedly while removing. Try again.");
 }
+
+function pairCondition(pair: Pair) {
+  if (pair.status === "connected") return { ConditionExpression: "#status = :status", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": "connected" } };
+  return { ConditionExpression: "#status = :status AND requestId = :id", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": pair.status, ":id": pair.requestId } };
+}
+
+/**
+ * Deletes every request and Connection the viewer is part of, from both
+ * students' partitions, and corrects the counts of students whose pending
+ * requests to the viewer are deleted. For account deletion (#51).
+ */
+export async function deleteAllConnections(viewer: Viewer) {
+  const me = viewer.studentId;
+  const others = new Set((await relationshipPairs(me)).map((pair) => (pair.status === "connected" ? pair.students.find((id) => id !== me)! : pair.sender === me ? pair.recipient : pair.sender)));
+  for (const other of others) {
+    for (let attempt = 0; ; attempt++) {
+      if (attempt === ATTEMPTS) throw new Error("Connections changed repeatedly while deleting them. Try again.");
+      const pair = await getPair(me, other);
+      const snapshot = pair?.status === "pending" && pair.sender === other ? await outgoingSnapshot(other) : null;
+      if (await transact([
+        pair ? { Delete: { TableName: tableName(), Key: pairKey(me, other), ...pairCondition(pair) } }
+          : { Delete: { TableName: tableName(), Key: pairKey(me, other), ConditionExpression: "attribute_not_exists(pk)" } },
+        { Delete: { TableName: tableName(), Key: relationshipKey(me, other) } },
+        { Delete: { TableName: tableName(), Key: relationshipKey(other, me) } },
+        ...(snapshot ? [counterUpdate(other, snapshot, -1)] : []),
+      ])) break;
+      await pause(attempt);
+    }
+  }
+}
