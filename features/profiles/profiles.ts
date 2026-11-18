@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-import { BatchGetCommand, type BatchGetCommandOutput, DeleteCommand, paginateQuery, PutCommand, QueryCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, paginateQuery, PutCommand, QueryCommand, UpdateCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import { db } from "@/lib/dynamodb";
 import { isUuid } from "@/lib/uuid";
 import { getSignedInStudent } from "@/features/auth/server-session";
@@ -9,7 +9,8 @@ import { getCourse } from "@/features/courses/course-catalogue";
 import { courseCodeKey, courseHref, SCHOOL } from "@/features/courses/course-model";
 import { checkPictureFile, CONTACT_FIELDS, MAX_HELP_OFFERS, parseBio, parseContact, PICTURE_CONTENT_ERROR, profileHref, type ContactField, type Contacts } from "./profile-model";
 import { moderatePicture } from "./moderation";
-import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, pictureUrl, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
+import { cleanPicture, createUpload, deletePictureObject, deleteUpload, isPictureKey, isUploadId, publishPicture, readUpload, type QuarantinedUpload } from "./pictures";
+import { tableName, profileKey, ignoreConditionFailure, readProfile, shownProfile, getProfiles } from "./profile-storage";
 
 declare const viewerBrand: unique symbol;
 
@@ -70,16 +71,6 @@ export type PictureUploadOutcome = { ok: true; upload: PictureUpload } | { ok: f
 // Profiles this server instance has already created or found.
 const knownProfiles = new Set<string>();
 
-function tableName() {
-  const name = process.env.PROFILES_TABLE_NAME;
-  if (!name) throw new Error("PROFILES_TABLE_NAME is not set.");
-  return name;
-}
-
-function profileKey(studentId: string) {
-  return { pk: `STUDENT#${studentId}`, sk: "PROFILE" };
-}
-
 const HELP_OFFER_PREFIX = "OFFER#";
 
 /** A Help Offer's key. `normalizedCode` is a course code as `courseCodeKey` normalises it, e.g. "ACC2101". */
@@ -100,58 +91,16 @@ const COURSE_VOLUNTEERS_INDEX = "course-volunteers";
 
 /** A course page shows at most this many Volunteers, newest first. Within BatchGetItem's 100 keys. */
 const MAX_VOLUNTEER_CARDS = 50;
-const BATCH_GET_ATTEMPTS = 5;
 const BIO_EXCERPT_LENGTH = 140;
-
-/** A conditional write whose condition failed (e.g. the item already exists) did nothing, which is fine. */
-function ignoreConditionFailure(error: unknown) {
-  if (!(error instanceof ConditionalCheckFailedException)) throw error;
-}
 
 function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-/** A stored Profile item, checked once here so the rest of the module can trust it. */
-function readProfile(item: Record<string, unknown> | undefined) {
-  if (!item) return null;
-  const { studentId, givenName, familyName } = item;
-  if (typeof studentId !== "string" || typeof givenName !== "string" || typeof familyName !== "string") return null;
-  return {
-    studentId,
-    givenName,
-    familyName,
-    bio: text(item.bio),
-    pictureKey: isPictureKey(item.pictureKey) ? item.pictureKey : null,
-    contacts: Object.fromEntries(CONTACT_FIELDS.flatMap((field) => (text(item[field]) ? [[field, item[field]]] : []))) as Contacts,
-  };
-}
-
-type ProfileRecord = NonNullable<ReturnType<typeof readProfile>>;
-
 /** A stored Help Offer item, or null for any other item in the partition. */
 function readHelpOffer(item: Record<string, unknown>) {
   if (!text(item.sk).startsWith(HELP_OFFER_PREFIX) || typeof item.courseCode !== "string") return null;
   return { courseCode: item.courseCode, title: text(item.courseTitle) || item.courseCode, createdAt: text(item.createdAt) };
-}
-
-function firstLetter(name: string) {
-  return Array.from(name)[0]?.toUpperCase() ?? "";
-}
-
-/**
- * What every signed-in viewer may see of a Profile. Signing a picture link is
- * the only way to see a picture, so this is never called for a signed-out visitor.
- */
-async function shownProfile({ givenName, familyName, bio, pictureKey }: ProfileRecord) {
-  // "First L.", never the full last name.
-  const initial = firstLetter(familyName);
-  return {
-    displayName: initial ? `${givenName} ${initial}.` : givenName,
-    initials: `${firstLetter(givenName)}${initial}`,
-    pictureUrl: pictureKey ? await pictureUrl(pictureKey) : null,
-    bio,
-  };
 }
 
 /**
@@ -289,28 +238,6 @@ export async function removeHelpOffer(viewer: Viewer, courseCode: string): Promi
   const normalizedCode = courseCodeKey(courseCode);
   if (!normalizedCode) return;
   await db.send(new DeleteCommand({ TableName: tableName(), Key: helpOfferKey(viewer.studentId, normalizedCode) }));
-}
-
-/** The Profiles of these students (at most 100), keyed by student ID. Missing Profiles are left out. */
-async function getProfiles(studentIds: string[]) {
-  const profiles = new Map<string, ProfileRecord>();
-  let keys: Record<string, unknown>[] | undefined = studentIds.map(profileKey);
-  for (let attempt = 0; keys?.length; attempt += 1) {
-    if (attempt === BATCH_GET_ATTEMPTS) throw new Error("DynamoDB kept leaving Profiles unread.");
-    if (attempt) await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
-    const result: BatchGetCommandOutput = await db.send(new BatchGetCommand({
-      RequestItems: {
-        // Contact details are never read for a course page.
-        [tableName()]: { Keys: keys, ProjectionExpression: "studentId, givenName, familyName, bio, pictureKey" },
-      },
-    }));
-    for (const item of result.Responses?.[tableName()] ?? []) {
-      const profile = readProfile(item);
-      if (profile) profiles.set(profile.studentId, profile);
-    }
-    keys = result.UnprocessedKeys?.[tableName()]?.Keys;
-  }
-  return profiles;
 }
 
 /** The start of a bio on one line, cut at a word where one is near. */
