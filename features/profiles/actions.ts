@@ -4,7 +4,8 @@ import { acceptRequest, declineRequest, removeConnection, sendRequest, withdrawR
 import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
-import { addHelpOffer, confirmPictureUpload, deleteAccountData, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
+import { text } from "./profile-storage";
+import { addHelpOffer, confirmPictureUpload, deleteProfileData, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
 
 /** What the edit-mode form shows: nothing yet (null), or how the last save went. */
 export type ProfileFormState = ProfileEditOutcome | Outcome | null;
@@ -42,9 +43,6 @@ async function asSignedInStudent<Result>(
 }
 
 // Anyone can call a server action with any arguments, so each is read as text.
-function text(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
 
 /**
  * Saves the edit-mode form to the signed-in student's own Profile. The Profile
@@ -142,6 +140,11 @@ export async function removeConnectionWith(otherId: unknown): Promise<Outcome> {
  * refreshed: the browser deletes their login next and leaves the page.
  */
 export async function deleteAccount(email: unknown, phrase: unknown): Promise<Outcome> {
-  return asSignedInStudent("Deleting an account", "Your account could not be deleted. Please try again.", (viewer) =>
-    deleteAccountData(viewer, text(email), text(phrase)));
+  // Not asSignedInStudent: a student whose deletion failed part way has no Viewer.
+  try {
+    return await deleteProfileData(text(email), text(phrase));
+  } catch (error) {
+    console.error("Deleting an account failed", { error });
+    return failed("Your account could not be deleted. Please try again.");
+  }
 }

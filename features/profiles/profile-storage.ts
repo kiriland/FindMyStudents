@@ -34,7 +34,7 @@ export function ignoreConditionFailure(error: unknown) {
   if (!(error instanceof ConditionalCheckFailedException)) throw error;
 }
 
-function text(value: unknown) {
+export function text(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
@@ -74,24 +74,56 @@ export async function shownProfile({ givenName, familyName, bio, pictureKey }: P
   };
 }
 
-/** The Profiles of these students (at most 100), keyed by student ID. Missing Profiles are left out. */
+export type ItemKey = { pk: string; sk: string };
+export type StoredItem = Record<string, unknown>;
+
+/** Where an item is stored, as one string, for looking items up by key. */
+export function itemId(key: ItemKey) {
+  return `${key.pk}/${key.sk}`;
+}
+
+/** Waits a little longer before each retry. */
+export function backOff(attempt: number) {
+  return new Promise((resolve) => setTimeout(resolve, 25 * 2 ** attempt));
+}
+
+/**
+ * Reads these items' `fields` in batches of 100, retrying the keys DynamoDB
+ * leaves unprocessed. Keyed by `itemId`; missing items are left out.
+ */
+export async function batchGet(keys: ItemKey[], fields: string[], { consistent = false } = {}) {
+  const items = new Map<string, StoredItem>();
+  const unique = [...new Map(keys.map((key) => [itemId(key), key])).values()];
+  const table = tableName();
+  const names = ["pk", "sk", ...fields];
+  for (let offset = 0; offset < unique.length; offset += 100) {
+    let remaining: StoredItem[] = unique.slice(offset, offset + 100);
+    for (let attempt = 0; remaining.length; attempt++) {
+      if (attempt === BATCH_GET_ATTEMPTS) throw new Error("DynamoDB kept leaving items unread.");
+      if (attempt) await backOff(attempt);
+      const result: BatchGetCommandOutput = await db.send(new BatchGetCommand({ RequestItems: {
+        [table]: {
+          Keys: remaining,
+          ConsistentRead: consistent,
+          ProjectionExpression: names.map((_, i) => `#f${i}`).join(", "),
+          ExpressionAttributeNames: Object.fromEntries(names.map((field, i) => [`#f${i}`, field])),
+        },
+      } }));
+      for (const item of result.Responses?.[table] ?? []) items.set(itemId(item as ItemKey), item);
+      remaining = result.UnprocessedKeys?.[table]?.Keys ?? [];
+    }
+  }
+  return items;
+}
+
+/** The Profiles of these students, keyed by student ID. Missing Profiles are left out. */
 export async function getProfiles(studentIds: string[]) {
   const profiles = new Map<string, ProfileRecord>();
-  let keys: Record<string, unknown>[] | undefined = studentIds.map(profileKey);
-  for (let attempt = 0; keys?.length; attempt += 1) {
-    if (attempt === BATCH_GET_ATTEMPTS) throw new Error("DynamoDB kept leaving Profiles unread.");
-    if (attempt) await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
-    const result: BatchGetCommandOutput = await db.send(new BatchGetCommand({
-      RequestItems: {
-        // Contact details are never read for a course page.
-        [tableName()]: { Keys: keys, ProjectionExpression: "studentId, givenName, familyName, bio, pictureKey" },
-      },
-    }));
-    for (const item of result.Responses?.[tableName()] ?? []) {
-      const profile = readProfile(item);
-      if (profile) profiles.set(profile.studentId, profile);
-    }
-    keys = result.UnprocessedKeys?.[tableName()]?.Keys;
+  // Contact details are never read here.
+  const items = await batchGet(studentIds.map(profileKey), ["studentId", "givenName", "familyName", "bio", "pictureKey"]);
+  for (const item of items.values()) {
+    const profile = readProfile(item);
+    if (profile) profiles.set(profile.studentId, profile);
   }
   return profiles;
 }

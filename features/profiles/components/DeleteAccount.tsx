@@ -10,7 +10,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { deleteAccount } from "../actions";
 import { DELETE_ACCOUNT_PHRASE } from "../profile-model";
 import type { Outcome } from "../profiles";
-import { PANEL, PANEL_BODY, PANEL_HEAD, PANEL_TITLE } from "./profile-styles";
+import { DIALOG, PANEL, PANEL_BODY, PANEL_HEAD, PANEL_TITLE } from "./profile-styles";
 
 /** Deleting the owner's account, after they type their email and DELETE_ACCOUNT_PHRASE. */
 export default function DeleteAccount() {
@@ -30,6 +30,7 @@ export default function DeleteAccount() {
   function remove() {
     setFeedback("");
     startTransition(async () => {
+      // Safe to repeat: a retry after the login failed finds the data already gone.
       const result = await deleteAccount(email, phrase).catch((): Outcome => ({ ok: false, message: "Your account could not be deleted. Please try again." }));
       if (!result.ok) return setFeedback(result.message);
       try {
@@ -63,7 +64,7 @@ export default function DeleteAccount() {
       <dialog
         ref={dialog}
         aria-labelledby={`${id}-title`}
-        className="m-auto w-[min(calc(100%-32px),480px)] rounded-card border border-line bg-surface p-6 text-ink shadow-float backdrop:bg-ink/40"
+        className={`${DIALOG} w-[min(calc(100%-32px),480px)]`}
       >
         <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); if (confirmed) remove(); }}>
           <h2 id={`${id}-title`} className="font-display text-lg leading-[1.3] font-semibold">Delete your account?</h2>
@@ -80,7 +81,7 @@ export default function DeleteAccount() {
           {feedback && <p role="alert" className={ERROR_CLASS}>{feedback}</p>}
           <div className="flex flex-wrap justify-end gap-2">
             <button type="button" className={buttonClass({ variant: "secondary" })} disabled={busy} onClick={() => dialog.current?.close()}>Cancel</button>
-            <button className={buttonClass({ className: "bg-danger hover:not-disabled:bg-danger/90" })} disabled={busy || !confirmed}>
+            <button className={buttonClass({ variant: "danger" })} disabled={busy || !confirmed}>
               {busy && <Spinner />}{busy ? "Deleting…" : "Delete account"}
             </button>
           </div>

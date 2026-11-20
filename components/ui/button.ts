@@ -1,4 +1,4 @@
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "white" | "outline-white";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "white" | "outline-white";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const BASE =
@@ -8,6 +8,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary: "border-transparent bg-brand text-white hover:not-disabled:bg-brand-strong",
   secondary: "border-line-strong bg-surface text-ink hover:not-disabled:bg-well",
   ghost: "border-transparent text-ink-2 hover:not-disabled:bg-well hover:not-disabled:text-ink",
+  /** Confirms something that can't be undone. */
+  danger: "border-transparent bg-danger text-white hover:not-disabled:bg-danger/90",
   white: "border-transparent bg-white text-brand-strong hover:bg-brand-50 focus-visible:outline-white",
   "outline-white": "border-white/50 text-white hover:border-white hover:bg-white/10 focus-visible:outline-white",
 };

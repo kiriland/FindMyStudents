@@ -7,7 +7,7 @@ import { ContactList } from "./ContactDetails";
 import PrivateBadge from "./PrivateBadge";
 import RemoveConnection from "./RemoveConnection";
 import RequestActions from "./RequestActions";
-import { SECTION_TITLE } from "./profile-styles";
+import { REQUEST_MESSAGE, SECTION_TITLE } from "./profile-styles";
 
 const GROUP_TITLE = "font-display text-base leading-[1.3] font-semibold text-ink-2";
 const ITEM = "flex flex-col gap-3 rounded-xl border border-line bg-surface px-4 py-3.5";
@@ -29,7 +29,7 @@ export default function ConnectionsSection({ overview }: { overview: Connections
             {incoming.map((request) => (
               <li key={request.requestId} className={ITEM}>
                 <Student student={request.student} courseCode={request.courseCode} />
-                {request.message && <p className="rounded-ctl bg-well px-3 py-2.5 text-[15px] leading-[1.55] whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">{request.message}</p>}
+                {request.message && <p className={REQUEST_MESSAGE}>{request.message}</p>}
                 <RequestActions studentId={request.student.id} requestId={request.requestId} kind="incoming" />
               </li>
             ))}

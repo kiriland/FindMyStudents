@@ -5,8 +5,13 @@ Terraform for student Profiles:
 - a new Cognito user pool. Email is the username and must be verified. First
   name (`given_name`) and last name (`family_name`) are required.
 - the public web app client that Amplify uses in the browser
-- the `findmystudents-profiles` DynamoDB table, with one item per Profile and
-  one item per Help Offer in the student's partition
+- the `findmystudents-profiles` DynamoDB table. Each student's partition
+  (`STUDENT#<id>`) holds their Profile, one item per Help Offer and one
+  `RELATIONSHIP#<other id>` item per Connection Request or Connection they're
+  part of. Each pair of students also has one `PAIR#<id>#<id>` item, the IDs in
+  sorted order, which holds the pair's current state. A deleted student's
+  partition keeps one `DELETED` item, holding only its key, so their Profile is
+  never created again
 - the table's `course-volunteers` index, which lists a Course's Volunteers
   newest Help Offer first. Only Help Offer items are in it.
 - a TTL on `expiresAt`, which deletes declined Connection Requests once their

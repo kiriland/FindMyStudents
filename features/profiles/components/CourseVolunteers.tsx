@@ -3,7 +3,7 @@ import { buttonClass } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/ui/icons";
 import { loginHref } from "@/features/auth/return-to";
 import { courseHref } from "@/features/courses/course-model";
-import { getCourseVolunteers, getProfile, getViewer } from "../profiles";
+import { getCourseVolunteers, getViewer, hasContactDetails } from "../profiles";
 import { getRelationships } from "../connections";
 import { profileHref } from "../profile-model";
 import Avatar from "./Avatar";
@@ -18,9 +18,9 @@ export default async function CourseVolunteers({ courseCode, title }: { courseCo
   const { count, cards } = await getCourseVolunteers(viewer, courseCode);
   // One batched read for every card, however many Volunteers there are.
   const relationships = viewer && cards?.length ? await getRelationships(viewer, cards.map((card) => card.id)) : null;
-  const ownProfile = viewer && [...(relationships?.values() ?? [])].some((relationship) => relationship.status === "none")
-    ? await getProfile(viewer, viewer.studentId) : null;
-  const hasContacts = !!(ownProfile?.isOwner && Object.values(ownProfile.contacts).some(Boolean));
+  // Only read when a card can show the request form, which mentions it.
+  const hasContacts = viewer && [...(relationships?.values() ?? [])].some((relationship) => relationship.status === "none")
+    ? await hasContactDetails(viewer) : false;
   const offer = { courseCode, title, href: courseHref({ courseCode }) };
   return (
     <section className="mt-8 border-t border-line pt-7" aria-labelledby="volunteers-heading">
@@ -74,7 +74,7 @@ export default async function CourseVolunteers({ courseCode, title }: { courseCo
                   <ArrowIcon className="hidden size-[18px] text-brand-strong transition-transform duration-250 ease-soft group-hover:translate-x-[3px] sm:block" />
                 </Link>
                 {viewer && relationship && relationship.status !== "self" && (
-                  <ConnectionControls studentId={volunteer.id} displayName={volunteer.displayName} relationship={relationship} offers={[offer]} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} cardProfileHref={volunteer.href} />
+                  <ConnectionControls studentId={volunteer.id} displayName={volunteer.displayName} relationship={relationship} offers={[offer]} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} onCard />
                 )}
               </li>
               );

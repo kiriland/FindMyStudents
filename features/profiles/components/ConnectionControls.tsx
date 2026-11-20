@@ -1,14 +1,18 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { INPUT_CLASS } from "@/components/Input";
 import { buttonClass, LINK_CLASS } from "@/components/ui/button";
 import { ERROR_CLASS, HINT_CLASS, LABEL_CLASS, Spinner } from "@/components/ui/Field";
-import { acceptConnectionRequest, declineConnectionRequest, sendConnectionRequest, withdrawConnectionRequest } from "../actions";
-import RemoveConnection from "./RemoveConnection";
+import { sendConnectionRequest } from "../actions";
 import { cooldownDate, REQUEST_MESSAGE_MAX_LENGTH, requestMessage, type Relationship } from "../connection-model";
-import type { HelpOfferView, Outcome } from "../profiles";
+import { profileHref } from "../profile-model";
+import type { HelpOfferView } from "../profiles";
+import { REQUEST_MESSAGE } from "./profile-styles";
+import RemoveConnection from "./RemoveConnection";
+import RequestActions from "./RequestActions";
+import { useConnectionChange } from "./useConnectionChange";
 
 type Props = {
   studentId: string;
@@ -17,34 +21,22 @@ type Props = {
   offers: HelpOfferView[];
   ownProfileHref: string;
   hasContacts: boolean;
-  /** On a course card: Connected links to this Profile instead of offering Remove. */
-  cardProfileHref?: string;
+  /** On a course card: smaller, and Connected links to the Profile instead of offering Remove. */
+  onCard?: boolean;
 };
 
 const STATUS = "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 font-display text-[13px] leading-[1.2] font-semibold";
 
-export default function ConnectionControls({ studentId, displayName, relationship, offers, ownProfileHref, hasContacts, cardProfileHref }: Props) {
+export default function ConnectionControls({ studentId, displayName, relationship, offers, ownProfileHref, hasContacts, onCard = false }: Props) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [course, setCourse] = useState("");
   const [message, setMessage] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [busy, startTransition] = useTransition();
+  const { busy, feedback, change } = useConnectionChange();
   const length = Array.from(requestMessage(message)).length;
   const tooLong = length > REQUEST_MESSAGE_MAX_LENGTH;
   const selected = offers.some((offer) => offer.courseCode === course) ? course : offers[0]?.courseCode ?? "";
-  const onCard = !!cardProfileHref;
   const size = onCard ? "sm" : "md";
-  const block = !onCard;
-
-  function change(action: () => Promise<Outcome>) {
-    setFeedback("");
-    startTransition(async () => {
-      const result = await action().catch((): Outcome => ({ ok: false, message: "The request could not be changed. Please try again." }));
-      if (!result.ok) setFeedback(result.message);
-      else { setOpen(false); setMessage(""); }
-    });
-  }
 
   if (relationship.status === "self") return null;
   return (
@@ -55,22 +47,17 @@ export default function ConnectionControls({ studentId, displayName, relationshi
       {relationship.status === "outgoing" && (
         <div className="flex flex-wrap items-center gap-2.5">
           <p role="status" className={`${STATUS} bg-brand-50 text-brand-strong`}>Requested</p>
-          <button type="button" className={buttonClass({ variant: "secondary", size: "sm" })} disabled={busy} onClick={() => change(() => withdrawConnectionRequest(studentId, relationship.requestId))}>
-            {busy && <Spinner />}{busy ? "Withdrawing…" : "Withdraw"}
-          </button>
+          <RequestActions studentId={studentId} requestId={relationship.requestId} kind="outgoing" />
         </div>
       )}
       {relationship.status === "incoming" && <>
         <p className="font-display text-[15px] leading-[1.35] font-medium text-ink">Wants to connect about {relationship.courseCode}</p>
-        {relationship.message && <p className="rounded-ctl bg-well px-3 py-2.5 text-[15px] leading-[1.55] whitespace-pre-wrap text-ink-2 [overflow-wrap:anywhere]">{relationship.message}</p>}
+        {relationship.message && <p className={REQUEST_MESSAGE}>{relationship.message}</p>}
         <p className={HINT_CLASS}>Accepting lets you both see each other’s contact details.</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={buttonClass({ size })} disabled={busy} onClick={() => change(() => acceptConnectionRequest(studentId, relationship.requestId))}>{busy && <Spinner />}Accept</button>
-          <button type="button" className={buttonClass({ variant: "secondary", size })} disabled={busy} onClick={() => change(() => declineConnectionRequest(studentId, relationship.requestId))}>Decline</button>
-        </div>
+        <RequestActions studentId={studentId} requestId={relationship.requestId} kind="incoming" size={size} />
       </>}
       {relationship.status === "connected" && (onCard
-        ? <Link href={cardProfileHref} className={`${STATUS} bg-green-50 text-success`}>Connected · view profile</Link>
+        ? <Link href={profileHref(studentId)} className={`${STATUS} bg-green-50 text-success`}>Connected · view profile</Link>
         : <>
           <p role="status" className={`${STATUS} bg-green-50 text-success`}>Connected</p>
           <RemoveConnection studentId={studentId} displayName={displayName} label="Remove connection" />
@@ -79,7 +66,7 @@ export default function ConnectionControls({ studentId, displayName, relationshi
         <p role="status" className={`${STATUS} bg-well text-muted`}>Declined · you can ask again on {cooldownDate(relationship.until)}</p>
       )}
       {relationship.status === "none" && offers.length > 0 && (open ? (
-        <form className="flex flex-col gap-3.5" onSubmit={(event) => { event.preventDefault(); change(() => sendConnectionRequest(studentId, selected, message)); }}>
+        <form className="flex flex-col gap-3.5" onSubmit={(event) => { event.preventDefault(); change(() => sendConnectionRequest(studentId, selected, message), () => { setOpen(false); setMessage(""); }); }}>
           {offers.length > 1 ? (
             <div className="flex min-w-0 flex-col gap-1.5">
               <label htmlFor={`${id}-course`} className={LABEL_CLASS}>Course</label>
@@ -115,7 +102,7 @@ export default function ConnectionControls({ studentId, displayName, relationshi
             <button type="button" className={buttonClass({ variant: "ghost", size })} disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
           </div>
         </form>
-      ) : <button type="button" className={buttonClass({ size, block, className: onCard ? "w-fit" : "" })} onClick={() => setOpen(true)}>Connect</button>)}
+      ) : <button type="button" className={buttonClass({ size, block: !onCard, className: onCard ? "w-fit" : "" })} onClick={() => setOpen(true)}>Connect</button>)}
       {feedback && <p role="alert" className={ERROR_CLASS}>{feedback}</p>}
     </section>
   );
