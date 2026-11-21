@@ -1,13 +1,22 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+
+import Link from "next/link";
+
 import { getDepartment } from "@/features/courses/course-model";
+
 import type { HelpOfferView } from "../profiles";
 
 /**
  * A Help Offer as a small catalogue card linking to its Course. `action` sits
  * in the corner, for the owner's remove button.
  */
-export default function OfferCard({ offer, action }: { offer: HelpOfferView; action?: ReactNode }) {
+export default function OfferCard({
+  offer,
+  action,
+}: {
+  offer: HelpOfferView;
+  action?: ReactNode;
+}) {
   const department = getDepartment(offer.courseCode);
   const number = offer.courseCode.slice(department.length).trim();
   return (
@@ -28,7 +37,10 @@ export default function OfferCard({ offer, action }: { offer: HelpOfferView; act
             {number}
           </span>
         </span>
-        <span aria-hidden="true" className={`line-clamp-2 self-center py-3.5 pl-3.5 text-sm leading-[1.4] text-muted ${action ? "pr-11" : "pr-3.5"}`}>
+        <span
+          aria-hidden="true"
+          className={`line-clamp-2 self-center py-3.5 pl-3.5 text-sm leading-[1.4] text-muted ${action ? "pr-11" : "pr-3.5"}`}
+        >
           {offer.title}
         </span>
       </Link>

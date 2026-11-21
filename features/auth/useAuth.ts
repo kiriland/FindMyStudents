@@ -2,20 +2,20 @@
 
 // Configures Amplify in the browser, before anything here signs in or reads the session.
 import "@/lib/amplify";
-import { useSyncExternalStore } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Hub } from "aws-amplify/utils";
+import { useSyncExternalStore } from "react";
 
-type Account = {
+interface Account {
   userId: string;
   email: string | null;
-};
+}
 
-type AuthState = {
+interface AuthState {
   account: Account | null;
   isLoading: boolean;
   error: string | null;
-};
+}
 
 // The server never knows the session, so it renders this, and so does hydration.
 const LOADING: AuthState = { account: null, isLoading: true, error: null };
@@ -28,23 +28,37 @@ const listeners = new Set<() => void>();
 
 function setState(next: AuthState) {
   state = next;
-  listeners.forEach((listener) => listener());
+  listeners.forEach((listener) => {
+    listener();
+  });
 }
 
 async function readSession() {
   const request = ++requestId;
   try {
     const claims = (await fetchAuthSession()).tokens?.idToken?.payload;
-    if (request !== requestId) return;
+    if (request !== requestId) {
+      return;
+    }
     setState({
-      account: typeof claims?.sub === "string"
-        ? { userId: claims.sub, email: typeof claims.email === "string" ? claims.email : null }
-        : null,
+      account:
+        typeof claims?.sub === "string"
+          ? {
+              userId: claims.sub,
+              email: typeof claims.email === "string" ? claims.email : null,
+            }
+          : null,
       isLoading: false,
       error: null,
     });
   } catch {
-    if (request === requestId) setState({ account: null, isLoading: false, error: "Unable to load your account." });
+    if (request === requestId) {
+      setState({
+        account: null,
+        isLoading: false,
+        error: "Unable to load your account.",
+      });
+    }
   }
 }
 
@@ -55,14 +69,18 @@ function subscribe(listener: () => void) {
     Hub.listen("auth", ({ payload }) => {
       if (payload.event === "signedIn" || payload.event === "tokenRefresh") {
         void readSession();
-      } else if (payload.event === "signedOut" || payload.event === "tokenRefresh_failure") {
+      } else if (
+        payload.event === "signedOut" ||
+        payload.event === "tokenRefresh_failure"
+      ) {
         requestId++;
         setState({
           account: null,
           isLoading: false,
-          error: payload.event === "tokenRefresh_failure"
-            ? "Your session could not be refreshed. Please log in again."
-            : null,
+          error:
+            payload.event === "tokenRefresh_failure"
+              ? "Your session could not be refreshed. Please log in again."
+              : null,
         });
       }
     });
@@ -79,5 +97,9 @@ function subscribe(listener: () => void) {
  * state the server sent, even when the session was read first, and then updates.
  */
 export function useAuth() {
-  return useSyncExternalStore(subscribe, () => state, () => LOADING);
+  return useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => LOADING,
+  );
 }

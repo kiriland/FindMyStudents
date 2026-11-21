@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
+
 import CourseTag from "@/components/ui/CourseTag";
 import { LogoMark } from "@/components/ui/Logo";
+
+import { H2, LEDE, SECTION_Y } from "../styles";
 import AccountCta from "./AccountCta";
 import SampleAvatar from "./SampleAvatar";
-import { H2, LEDE, SECTION_Y } from "../styles";
 
-type Reason = { title: string; text: string; visual: ReactNode };
+interface Reason {
+  title: string;
+  text: string;
+  visual: ReactNode;
+}
 
 const REASONS: Reason[] = [
   {
@@ -25,7 +31,11 @@ const REASONS: Reason[] = [
     visual: (
       <span className="flex">
         {["SP", "AL", "MC"].map((initials, index) => (
-          <SampleAvatar key={initials} initials={initials} className={`size-[34px] border-2 border-surface text-xs ${index ? "-ml-1.5" : ""}`} />
+          <SampleAvatar
+            key={initials}
+            initials={initials}
+            className={`size-[34px] border-2 border-surface text-xs ${index ? "-ml-1.5" : ""}`}
+          />
         ))}
       </span>
     ),
@@ -49,7 +59,9 @@ const REASONS: Reason[] = [
       <span className="flex items-center gap-2.5 rounded-card border border-line bg-surface py-2 pr-3.5 pl-2">
         <SampleAvatar initials="JR" />
         <span className="text-[15px] leading-[1.35] text-ink-2">
-          <strong className="block font-display leading-[1.2] font-semibold text-ink">Jordan R.</strong>
+          <strong className="block font-display leading-[1.2] font-semibold text-ink">
+            Jordan R.
+          </strong>
           Offers help with 4 courses
         </span>
       </span>
@@ -72,22 +84,37 @@ export default function WhyStudents() {
   return (
     <section aria-labelledby="why-title" className={SECTION_Y}>
       <div className="wrap grid items-start gap-[clamp(32px,6vw,80px)] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div className="reveal flex flex-col items-start lg:sticky lg:top-[100px]">
-          <h2 id="why-title" className={H2}>Why students use FindMyStudents</h2>
-          <p className={LEDE}>Built around the way Baruch students already think about school: one course at a time.</p>
-          <AccountCta signedInLabel="Go to your profile" className="mt-[26px]" />
+        <div className="flex flex-col items-start reveal lg:sticky lg:top-[100px]">
+          <h2 id="why-title" className={H2}>
+            Why students use FindMyStudents
+          </h2>
+          <p className={LEDE}>
+            Built around the way Baruch students already think about school: one
+            course at a time.
+          </p>
+          <AccountCta
+            signedInLabel="Go to your profile"
+            className="mt-[26px]"
+          />
         </div>
         <ul>
           {REASONS.map((reason) => (
             <li
               key={reason.title}
-              className="reveal grid items-center gap-3.5 border-b border-line py-7 first:border-t md:grid-cols-[minmax(0,1fr)_auto] md:gap-6"
+              className="grid items-center gap-3.5 border-b border-line py-7 reveal first:border-t md:grid-cols-[minmax(0,1fr)_auto] md:gap-6"
             >
               <div>
-                <h3 className="font-display text-[clamp(20px,2vw,24px)] leading-[1.2] font-semibold tracking-[-0.02em]">{reason.title}</h3>
-                <p className="mt-2 max-w-[46ch] text-[17px] leading-[1.55] text-muted">{reason.text}</p>
+                <h3 className="font-display text-[clamp(20px,2vw,24px)] leading-[1.2] font-semibold tracking-[-0.02em]">
+                  {reason.title}
+                </h3>
+                <p className="mt-2 max-w-[46ch] text-[17px] leading-[1.55] text-muted">
+                  {reason.text}
+                </p>
               </div>
-              <div aria-hidden="true" className="flex min-w-0 items-center md:justify-self-end">
+              <div
+                aria-hidden="true"
+                className="flex min-w-0 items-center md:justify-self-end"
+              >
                 {reason.visual}
               </div>
             </li>

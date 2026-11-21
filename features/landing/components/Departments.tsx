@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ChevronIcon } from "@/components/ui/icons";
+
 import { LINK_CLASS } from "@/components/ui/button";
+import { ChevronIcon } from "@/components/ui/icons";
 import { discoveryHref, EMPTY_QUERY } from "@/features/courses/course-model";
+
 import { getDepartmentIndex } from "../departments";
 import { H2, LEDE } from "../styles";
 
@@ -15,7 +17,11 @@ function DepartmentLinks({ codes, size }: { codes: string[]; size: string }) {
     <ul className="flex flex-wrap gap-x-[clamp(16px,2vw,26px)] gap-y-1">
       {codes.map((department) => (
         <li key={department}>
-          <Link href={discoveryHref({ ...EMPTY_QUERY, department })} className={`${CODE} ${size}`} aria-label={`${department} courses`}>
+          <Link
+            href={discoveryHref({ ...EMPTY_QUERY, department })}
+            className={`${CODE} ${size}`}
+            aria-label={`${department} courses`}
+          >
             {department}
           </Link>
         </li>
@@ -32,7 +38,10 @@ async function DepartmentIndex() {
     return (
       <p className="mt-7 text-[17px] text-muted">
         Departments can’t be shown right now.{" "}
-        <Link href={discoveryHref()} className={LINK_CLASS}>Search all courses</Link> instead.
+        <Link href={discoveryHref()} className={LINK_CLASS}>
+          Search all courses
+        </Link>{" "}
+        instead.
       </p>
     );
   }
@@ -40,17 +49,29 @@ async function DepartmentIndex() {
   return (
     <>
       <div className="mt-7">
-        <DepartmentLinks codes={index.featured} size="text-[clamp(22px,2.9vw,36px)]" />
+        <DepartmentLinks
+          codes={index.featured}
+          size="text-[clamp(22px,2.9vw,36px)]"
+        />
       </div>
       {index.rest.length > 0 && (
-        <details className="group details-smooth mt-[22px]">
-          <summary className={`${LINK_CLASS} inline-flex items-center gap-2 text-[15px]`}>
-            <span className="group-open:hidden">Show all {total} departments</span>
-            <span className="hidden group-open:inline">Show fewer departments</span>
+        <details className="group mt-[22px] details-smooth">
+          <summary
+            className={`${LINK_CLASS} inline-flex items-center gap-2 text-[15px]`}
+          >
+            <span className="group-open:hidden">
+              Show all {total} departments
+            </span>
+            <span className="hidden group-open:inline">
+              Show fewer departments
+            </span>
             <ChevronIcon className="size-4 transition-transform duration-250 ease-soft group-open:rotate-180" />
           </summary>
           <div className="pt-4">
-            <DepartmentLinks codes={index.rest} size="text-[clamp(18px,2.2vw,26px)]" />
+            <DepartmentLinks
+              codes={index.rest}
+              size="text-[clamp(18px,2.2vw,26px)]"
+            />
           </div>
         </details>
       )}
@@ -60,9 +81,16 @@ async function DepartmentIndex() {
 
 function DepartmentsLoading() {
   return (
-    <div role="status" className="mt-7 flex flex-wrap gap-x-[clamp(16px,2vw,26px)] gap-y-3" aria-label="Loading departments">
+    <div
+      role="status"
+      className="mt-7 flex flex-wrap gap-x-[clamp(16px,2vw,26px)] gap-y-3"
+      aria-label="Loading departments"
+    >
       {Array.from({ length: 12 }, (_, index) => (
-        <span key={index} className="h-[clamp(26px,3vw,38px)] w-[clamp(54px,6vw,78px)] animate-pulse rounded-md bg-well" />
+        <span
+          key={index}
+          className="h-[clamp(26px,3vw,38px)] w-[clamp(54px,6vw,78px)] animate-pulse rounded-md bg-well"
+        />
       ))}
     </div>
   );
@@ -71,14 +99,22 @@ function DepartmentsLoading() {
 /** Department codes set large, as a typographic index into the course directory. */
 export default function Departments() {
   return (
-    <section id="departments" aria-labelledby="depts-title" className="border-y border-line bg-surface py-[clamp(56px,8vw,96px)]">
+    <section
+      id="departments"
+      aria-labelledby="depts-title"
+      className="border-y border-line bg-surface py-[clamp(56px,8vw,96px)]"
+    >
       <div className="wrap">
-        <div className="reveal flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 reveal">
           <div>
-            <h2 id="depts-title" className={H2}>Browse by department</h2>
+            <h2 id="depts-title" className={H2}>
+              Browse by department
+            </h2>
             <p className={LEDE}>Jump straight to a subject’s courses.</p>
           </div>
-          <Link href={discoveryHref()} className={LINK_CLASS}>Search all courses</Link>
+          <Link href={discoveryHref()} className={LINK_CLASS}>
+            Search all courses
+          </Link>
         </div>
         <Suspense fallback={<DepartmentsLoading />}>
           <DepartmentIndex />

@@ -1,10 +1,14 @@
 import Form from "next/form";
 import Link from "next/link";
+
 import { ArrowIcon } from "@/components/ui/icons";
-import { DISCOVERY_PATH, discoveryHref, EMPTY_QUERY } from "@/features/courses/course-model";
+import {
+  DISCOVERY_PATH,
+  discoveryHref,
+  EMPTY_QUERY,
+} from "@/features/courses/course-model";
 
 const EXAMPLES = ["CIS 3400", "statistics", "accounting"];
-
 // The headline and the search line share one size so the input reads as the sentence's last words.
 const DISPLAY = "font-display text-[clamp(38px,6.4vw,84px)] tracking-[-0.04em]";
 const BUTTON_SIZE = "clamp(48px,5.6vw,76px)";
@@ -13,14 +17,24 @@ const GAP = "clamp(12px,2vw,24px)";
 /** A fill-in-the-blank course search: submitting opens the course directory with `q`. */
 export default function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="pt-[clamp(28px,5vw,72px)] pb-[clamp(40px,6vw,80px)]">
+    <section
+      aria-labelledby="hero-title"
+      className="pt-[clamp(28px,5vw,72px)] pb-[clamp(40px,6vw,80px)]"
+    >
       <div className="wrap">
-        <h1 id="hero-title" className={`${DISPLAY} leading-[1.02] font-semibold [text-wrap:initial]`}>
+        <h1
+          id="hero-title"
+          className={`${DISPLAY} leading-[1.02] font-semibold [text-wrap:initial]`}
+        >
           <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em]">
-            <span className="inline-block animate-rise">Find a Baruch student</span>
+            <span className="inline-block animate-rise">
+              Find a Baruch student
+            </span>
           </span>
           <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em]">
-            <span className="inline-block animate-rise [animation-delay:90ms]">who can help with</span>
+            <span className="inline-block animate-rise [animation-delay:90ms]">
+              who can help with
+            </span>
           </span>
         </h1>
 
@@ -49,7 +63,7 @@ export default function Hero() {
           <button
             type="submit"
             aria-label="Search courses"
-            className="grid aspect-square flex-none cursor-pointer animate-fade-up place-items-center rounded-full bg-brand text-white transition-[background-color,transform] duration-150 ease-soft [animation-delay:820ms] hover:bg-brand-strong active:scale-95"
+            className="grid aspect-square flex-none animate-fade-up cursor-pointer place-items-center rounded-full bg-brand text-white transition-[background-color,transform] duration-150 ease-soft [animation-delay:820ms] hover:bg-brand-strong active:scale-95"
             style={{ width: BUTTON_SIZE }}
           >
             <ArrowIcon className="size-[44%] transition-transform duration-250 ease-soft group-focus-within:translate-x-0.5" />
@@ -57,9 +71,13 @@ export default function Hero() {
         </Form>
 
         <p className="mt-[clamp(22px,2.6vw,32px)] max-w-[60ch] animate-fade-up text-[clamp(17px,1.6vw,20px)] leading-relaxed text-muted [animation-delay:880ms]">
-          FindMyStudents connects Baruch College students with classmates who offer help with specific courses.{" "}
-          <strong className="font-semibold text-ink">Search any course in the catalogue</strong>, see who has volunteered
-          to help with it, and get to know them through their profile.
+          FindMyStudents connects Baruch College students with classmates who
+          offer help with specific courses.{" "}
+          <strong className="font-semibold text-ink">
+            Search any course in the catalogue
+          </strong>
+          , see who has volunteered to help with it, and get to know them
+          through their profile.
         </p>
 
         <div className="mt-[18px] flex animate-fade-up flex-wrap items-center gap-2 text-subtle [animation-delay:980ms]">

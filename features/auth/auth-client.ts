@@ -12,7 +12,7 @@ async function verifyChallenge(token: string, action: "login" | "signup") {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, action }),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(10_000),
     });
   } catch {
     throw new Error("Please try again.");
@@ -22,7 +22,11 @@ async function verifyChallenge(token: string, action: "login" | "signup") {
   }
 }
 
-export async function signInWithEmail(email: string, password: string, token: string) {
+export async function signInWithEmail(
+  email: string,
+  password: string,
+  token: string,
+) {
   await verifyChallenge(token, "login");
   return signIn({
     username: email,
@@ -30,14 +34,17 @@ export async function signInWithEmail(email: string, password: string, token: st
   });
 }
 
-export type SignupDetails = {
+export interface SignupDetails {
   email: string;
   password: string;
   givenName: string;
   familyName: string;
-};
+}
 
-export async function signUpWithEmail({ email, password, givenName, familyName }: SignupDetails, token: string) {
+export async function signUpWithEmail(
+  { email, password, givenName, familyName }: SignupDetails,
+  token: string,
+) {
   await verifyChallenge(token, "signup");
   return signUp({
     username: email,
@@ -52,7 +59,10 @@ export async function signUpWithEmail({ email, password, givenName, familyName }
   });
 }
 
-export function confirmEmailSignup(email: string, confirmationCode: string) {
+export async function confirmEmailSignup(
+  email: string,
+  confirmationCode: string,
+) {
   return confirmSignUp({
     username: email,
     confirmationCode,

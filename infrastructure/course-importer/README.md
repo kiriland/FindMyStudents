@@ -44,7 +44,7 @@ aws dynamodb wait table-exists --region us-east-1 --table-name classes
 ## Run
 
 ```bash
-node scripts/sync-courses.mjs
+node scripts/sync-courses.ts
 ```
 
 Optional overrides: `--effective-date YYYY-MM-DD` and `--catalog-id ID`.
@@ -77,7 +77,7 @@ Each run refreshes the entire catalog, not semester sections or class schedules.
   Missing courses are retained and counted as `missingFromSource`.
 - All source pages must be complete before course updates. The importer requires
   at least 1,000 codes and rejects drops over 20% from the previous successful
-  source count. These constants live in `services/course-importer/src/index.mjs`.
+  source count. These constants live in `services/course-importer/src/index.ts`.
 - The source-count checkpoint and expiring import lock use the separate
   `__course_importer__` partition, outside the website's course query. The first
   successful run establishes the count baseline.
@@ -100,7 +100,7 @@ state and redeploy the same resource names.
 
 ```bash
 npm run build --prefix services/course-importer
-node --check services/course-importer/src/index.mjs
+npm run typecheck --prefix services/course-importer
 npx tsc --noEmit
 bash -n scripts/deploy-course-importer.sh
 terraform -chdir=infrastructure/course-importer fmt -check

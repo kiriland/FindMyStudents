@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import Logo from "@/components/ui/Logo";
 import { discoveryHref } from "@/features/courses/course-model";
 
@@ -15,12 +16,20 @@ export default function Footer() {
         <div>
           <Logo />
           <p className="mt-2.5 max-w-[46ch] text-sm text-subtle">
-            An independent student project for the Baruch College community. Not an official Baruch College service.
+            An independent student project for the Baruch College community. Not
+            an official Baruch College service.
           </p>
         </div>
-        <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <nav
+          aria-label="Footer"
+          className="flex flex-wrap items-center gap-x-5 gap-y-1"
+        >
           {LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="py-1 font-semibold text-muted transition-colors duration-150 hover:text-brand-strong">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="py-1 font-semibold text-muted transition-colors duration-150 hover:text-brand-strong"
+            >
               {link.label}
             </Link>
           ))}

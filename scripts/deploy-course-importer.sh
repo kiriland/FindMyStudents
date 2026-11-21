@@ -25,5 +25,5 @@ fi
 
 if [[ "${SKIP_INITIAL_SYNC:-0}" != "1" ]]; then
   echo "Running the initial catalog sync. Existing course records may be updated."
-  node "$repo_dir/scripts/sync-courses.mjs"
+  node "$repo_dir/scripts/sync-courses.ts"
 fi

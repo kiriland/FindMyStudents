@@ -1,4 +1,4 @@
-name: PR Build & Type Check
+name: PR Build, Lint, Format & Type Check
 
 on:
   pull_request:
@@ -28,6 +28,12 @@ jobs:
 
       - name: TypeScript Check
         run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format Check
+        run: npm run format:check
 
       - name: Build & Prepare Standalone Artifact
         run: npm run prep:standalone

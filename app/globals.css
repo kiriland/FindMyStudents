@@ -29,7 +29,8 @@
   --radius-panel: 20px;
 
   /* Only floating layers (menus, panels, popovers) get a shadow. */
-  --shadow-float: 0 1px 2px rgb(24 24 27 / 0.05), 0 16px 40px -12px rgb(30 58 138 / 0.22);
+  --shadow-float:
+    0 1px 2px rgb(24 24 27 / 0.05), 0 16px 40px -12px rgb(30 58 138 / 0.22);
   --shadow-lift: 0 12px 30px -18px rgb(30 58 138 / 0.35);
 
   --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -40,17 +41,40 @@
   --animate-draw-x: draw-x 760ms var(--ease-soft) both;
   --animate-blink: blink 1.1s steps(1) infinite;
 
-  @keyframes rise { from { transform: translateY(108%); } }
-  @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } }
-  @keyframes fade { from { opacity: 0; } }
-  @keyframes draw-x { from { transform: scaleX(0); } }
-  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes rise {
+    from {
+      transform: translateY(108%);
+    }
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes draw-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
 }
 
 /* next/font sets these variables on <html>. */
 @theme inline {
-  --font-sans: var(--font-source-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-lexend), "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-sans:
+    var(--font-source-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display:
+    var(--font-lexend), "Avenir Next", "Segoe UI", system-ui, sans-serif;
 }
 
 :root {
@@ -75,7 +99,10 @@
     line-height: 1.5;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     text-wrap: balance;
   }
@@ -96,11 +123,15 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after {
+    *,
+    ::before,
+    ::after {
       animation-duration: 1ms !important;
       animation-delay: 0ms !important;
       animation-iteration-count: 1 !important;
@@ -124,11 +155,34 @@
    style is its final state, so browsers without scroll timelines, and anyone
    who prefers reduced motion, see finished content. */
 
-@keyframes reveal { from { opacity: 0; transform: translateY(22px); } }
-@keyframes dash { from { stroke-dashoffset: 1; } }
-@keyframes pop-in { from { opacity: 0; scale: 0.9; } }
-@keyframes dot-on { from { background: var(--color-canvas); color: var(--color-brand-strong); } }
-@keyframes grow-y { from { transform: scaleY(0); } }
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+}
+@keyframes dash {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
+}
+@keyframes dot-on {
+  from {
+    background: var(--color-canvas);
+    color: var(--color-brand-strong);
+  }
+}
+@keyframes grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
 
 /* A block that rises into place as it scrolls into view. */
 @utility reveal {
@@ -148,27 +202,47 @@
    Longhands only: the `animation` shorthand would reset the timeline. */
 @utility scroll-dash {
   @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) { animation-name: dash; animation-timing-function: linear; animation-fill-mode: both; }
+    @supports (animation-timeline: view()) {
+      animation-name: dash;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
   }
 }
 @utility scroll-pop {
   @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) { animation-name: pop-in; animation-timing-function: linear; animation-fill-mode: both; }
+    @supports (animation-timeline: view()) {
+      animation-name: pop-in;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
   }
 }
 @utility scroll-draw-x {
   @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) { animation-name: draw-x; animation-timing-function: linear; animation-fill-mode: both; }
+    @supports (animation-timeline: view()) {
+      animation-name: draw-x;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
   }
 }
 @utility scroll-grow-y {
   @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) { animation-name: grow-y; animation-timing-function: linear; animation-fill-mode: both; }
+    @supports (animation-timeline: view()) {
+      animation-name: grow-y;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
   }
 }
 @utility scroll-dot-on {
   @media (prefers-reduced-motion: no-preference) {
-    @supports (animation-timeline: view()) { animation-name: dot-on; animation-timing-function: linear; animation-fill-mode: both; }
+    @supports (animation-timeline: view()) {
+      animation-name: dot-on;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
   }
 }
 @utility scroll-on-* {
@@ -188,7 +262,10 @@
     block-size: 0;
     overflow: hidden;
     opacity: 0;
-    transition: block-size 320ms var(--ease-soft), opacity 320ms ease, content-visibility 320ms allow-discrete;
+    transition:
+      block-size 320ms var(--ease-soft),
+      opacity 320ms ease,
+      content-visibility 320ms allow-discrete;
   }
   &[open]::details-content {
     block-size: auto;
@@ -228,7 +305,9 @@
     flex-direction: column;
   }
   @starting-style {
-    &[open] { translate: 100% 0; }
+    &[open] {
+      translate: 100% 0;
+    }
   }
   &::backdrop {
     background: rgb(30 58 138 / 0.16);
@@ -237,7 +316,9 @@
     transition: opacity 420ms var(--ease-soft);
   }
   @starting-style {
-    &[open]::backdrop { opacity: 0; }
+    &[open]::backdrop {
+      opacity: 0;
+    }
   }
 
   @media (max-width: 639px) {
@@ -248,22 +329,44 @@
     border-radius: var(--radius-panel) var(--radius-panel) 0 0;
     box-shadow: 0 -24px 60px -24px rgb(30 58 138 / 0.35);
     @starting-style {
-      &[open] { translate: 0 100%; }
+      &[open] {
+        translate: 0 100%;
+      }
     }
   }
 }
 
 /* Children of a container that rise in one after another. */
-@keyframes rise-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
 @utility stagger-in {
-  & > * { animation: rise-in 420ms var(--ease-soft) both; }
-  & > :nth-child(2) { animation-delay: 60ms; }
-  & > :nth-child(3) { animation-delay: 100ms; }
-  & > :nth-child(n + 4) { animation-delay: 140ms; }
+  & > * {
+    animation: rise-in 420ms var(--ease-soft) both;
+  }
+  & > :nth-child(2) {
+    animation-delay: 60ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 100ms;
+  }
+  & > :nth-child(n + 4) {
+    animation-delay: 140ms;
+  }
 }
 
 /* A thin bar that sweeps across while something loads. */
-@keyframes slide-bar { from { left: -30%; } to { left: 100%; } }
+@keyframes slide-bar {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
 @utility progress-sweep {
   &::after {
     content: "";
@@ -279,7 +382,11 @@
 }
 
 /* A soft shine passing over a loading placeholder. */
-@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
 @utility shimmer {
   position: relative;
   overflow: hidden;
@@ -288,7 +395,12 @@
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.75), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.75),
+      transparent
+    );
     animation: shimmer 1.1s ease-in-out infinite;
   }
 }

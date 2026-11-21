@@ -1,47 +1,47 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { signOut } from "aws-amplify/auth";
-import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/features/auth/useAuth";
-import { profileHref } from "@/features/profiles/profile-model";
-import { DISCOVERY_PATH } from "@/features/courses/course-model";
-import Logo from "@/components/ui/Logo";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
 import { buttonClass } from "@/components/ui/button";
 import { CloseIcon, MenuIcon } from "@/components/ui/icons";
+import Logo from "@/components/ui/Logo";
+import { useAuth } from "@/features/auth/useAuth";
+import { DISCOVERY_PATH } from "@/features/courses/course-model";
+import { profileHref } from "@/features/profiles/profile-model";
+
 import AccountMenu from "./AccountMenu";
 
 // The bar turns solid once the page scrolls under it. The server and hydration
 // render it at the top of the page.
 function subscribeToScroll(onChange: () => void) {
   window.addEventListener("scroll", onChange, { passive: true });
-  return () => window.removeEventListener("scroll", onChange);
+  return () => {
+    window.removeEventListener("scroll", onChange);
+  };
 }
 const isScrolled = () => window.scrollY > 8;
 const atTop = () => false;
-
 const LINK =
   "rounded-lg px-3 py-[9px] font-display text-[15px] leading-none font-medium transition-colors duration-150";
 
-type NavbarProps = {
+interface NavbarProps {
   /** Shown next to the Profile links, such as a count of pending requests. */
   profileBadge?: React.ReactNode;
-};
+}
 
 export default function Navbar({ profileBadge }: NavbarProps) {
   const { account, isLoading, error } = useAuth();
-
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const scrolled = useSyncExternalStore(subscribeToScroll, isScrolled, atTop);
   const menuButton = useRef<HTMLButtonElement>(null);
   const header = useRef<HTMLElement>(null);
-
   const pathname = usePathname();
   const router = useRouter();
-
   const [menuPathname, setMenuPathname] = useState(pathname);
   if (menuPathname !== pathname) {
     setMenuPathname(pathname);
@@ -54,14 +54,20 @@ export default function Navbar({ profileBadge }: NavbarProps) {
 
   // Esc closes the mobile menu and returns focus to its button; so does a tap outside it.
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) {
+      return;
+    }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape") {
+        return;
+      }
       setMenuOpen(false);
       menuButton.current?.focus();
     }
     function handlePointerDown(event: PointerEvent) {
-      if (!header.current?.contains(event.target as Node)) setMenuOpen(false);
+      if (!header.current?.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
     }
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("pointerdown", handlePointerDown);
@@ -71,8 +77,12 @@ export default function Navbar({ profileBadge }: NavbarProps) {
     };
   }, [menuOpen]);
 
+  const alertMessage = error ?? logoutError;
+
   async function handleLogout() {
-    if (loggingOut) return;
+    if (loggingOut) {
+      return;
+    }
 
     setLogoutError("");
     setLoggingOut(true);
@@ -90,7 +100,8 @@ export default function Navbar({ profileBadge }: NavbarProps) {
     }
   }
 
-  const coursesActive = pathname === DISCOVERY_PATH || pathname.startsWith("/courses/");
+  const coursesActive =
+    pathname === DISCOVERY_PATH || pathname.startsWith("/courses/");
   const navigationLinks = [
     { href: DISCOVERY_PATH, label: "Courses", current: coursesActive },
     { href: "/#how", label: "How it works", current: false },
@@ -126,28 +137,40 @@ export default function Navbar({ profileBadge }: NavbarProps) {
         </ul>
 
         <div className="ml-auto hidden min-w-0 items-center gap-1.5 md:flex">
-          {isLoading ? (
-            <span role="status" className="h-10 w-40 animate-pulse rounded-full bg-well">
+          {isLoading && (
+            <span
+              role="status"
+              className="h-10 w-40 animate-pulse rounded-full bg-well"
+            >
               <span className="sr-only">Loading account…</span>
             </span>
-          ) : account ? (
+          )}
+          {!isLoading && account && (
             <AccountMenu
               email={account.email}
               profileHref={profileHref(account.userId)}
               profileBadge={profileBadge}
-              onLogout={handleLogout}
+              onLogout={() => {
+                void handleLogout();
+              }}
               loggingOut={loggingOut}
             />
-          ) : (
+          )}
+          {!isLoading && !account && (
             <>
               <Link
                 href="/login"
                 aria-current={pathname === "/login" ? "page" : undefined}
-                className={buttonClass({ variant: "ghost", className: "aria-[current=page]:text-brand-strong" })}
+                className={buttonClass({
+                  variant: "ghost",
+                  className: "aria-[current=page]:text-brand-strong",
+                })}
               >
                 Log in
               </Link>
-              <Link href="/signup" className={buttonClass()}>Sign up</Link>
+              <Link href="/signup" className={buttonClass()}>
+                Sign up
+              </Link>
             </>
           )}
         </div>
@@ -158,10 +181,16 @@ export default function Navbar({ profileBadge }: NavbarProps) {
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
           aria-controls="mobile-navigation"
-          onClick={() => setMenuOpen((previous) => !previous)}
+          onClick={() => {
+            setMenuOpen((previous) => !previous);
+          }}
           className="ml-auto grid size-11 shrink-0 cursor-pointer place-items-center rounded-ctl text-ink transition-colors duration-150 hover:bg-well md:hidden"
         >
-          {menuOpen ? <CloseIcon className="size-[22px]" /> : <MenuIcon className="size-[22px]" />}
+          {menuOpen ? (
+            <CloseIcon className="size-[22px]" />
+          ) : (
+            <MenuIcon className="size-[22px]" />
+          )}
         </button>
       </nav>
 
@@ -169,7 +198,9 @@ export default function Navbar({ profileBadge }: NavbarProps) {
       <div
         id="mobile-navigation"
         className={`absolute inset-x-0 top-full max-h-[calc(100dvh-68px)] overflow-y-auto border-b border-line bg-surface py-3 pb-5 shadow-float transition-[opacity,translate,visibility] duration-250 ease-soft md:hidden ${
-          menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-2 opacity-0"
+          menuOpen
+            ? "visible translate-y-0 opacity-100"
+            : "invisible -translate-y-2 opacity-0"
         }`}
       >
         <div className="wrap flex flex-col gap-1">
@@ -187,12 +218,22 @@ export default function Navbar({ profileBadge }: NavbarProps) {
 
           <hr className="my-2 border-line" />
 
-          {isLoading ? (
-            <p role="status" className="px-3 py-3 text-subtle">Loading account…</p>
-          ) : account ? (
+          {isLoading && (
+            <p role="status" className="px-3 py-3 text-subtle">
+              Loading account…
+            </p>
+          )}
+          {!isLoading && account && (
             <>
               <p className="truncate px-3 pt-1 pb-2 text-sm text-subtle">
-                {account.email ? <>Logged in as <span className="text-ink-2">{account.email}</span></> : "Logged in"}
+                {account.email ? (
+                  <>
+                    Logged in as{" "}
+                    <span className="text-ink-2">{account.email}</span>
+                  </>
+                ) : (
+                  "Logged in"
+                )}
               </p>
               {ownProfile && (
                 <Link
@@ -206,19 +247,34 @@ export default function Navbar({ profileBadge }: NavbarProps) {
               )}
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => {
+                  void handleLogout();
+                }}
                 disabled={loggingOut}
                 className={`${LINK} cursor-pointer px-3 py-3.5 text-left text-[17px] text-ink-2 hover:bg-well disabled:opacity-50`}
               >
                 {loggingOut ? "Logging out…" : "Log out"}
               </button>
             </>
-          ) : (
+          )}
+          {!isLoading && !account && (
             <div className="flex flex-col gap-2 pt-1">
-              <Link href="/login" onClick={closeMenu} className={buttonClass({ variant: "secondary", block: true, size: "lg" })}>
+              <Link
+                href="/login"
+                onClick={closeMenu}
+                className={buttonClass({
+                  variant: "secondary",
+                  block: true,
+                  size: "lg",
+                })}
+              >
                 Log in
               </Link>
-              <Link href="/signup" onClick={closeMenu} className={buttonClass({ block: true, size: "lg" })}>
+              <Link
+                href="/signup"
+                onClick={closeMenu}
+                className={buttonClass({ block: true, size: "lg" })}
+              >
                 Sign up
               </Link>
             </div>
@@ -226,9 +282,12 @@ export default function Navbar({ profileBadge }: NavbarProps) {
         </div>
       </div>
 
-      {(error || logoutError) && (
-        <div role="alert" className="border-t border-red-200 bg-danger-soft px-4 py-3 text-center text-sm text-danger">
-          {error || logoutError}
+      {alertMessage && (
+        <div
+          role="alert"
+          className="border-t border-red-200 bg-danger-soft px-4 py-3 text-center text-sm text-danger"
+        >
+          {alertMessage}
         </div>
       )}
     </header>

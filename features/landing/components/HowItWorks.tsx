@@ -1,10 +1,17 @@
 import type { ReactNode } from "react";
+
 import CourseTag from "@/components/ui/CourseTag";
 import { SearchIcon } from "@/components/ui/icons";
-import SampleAvatar from "./SampleAvatar";
-import { H2, LEDE, SECTION_Y } from "../styles";
 
-type Step = { title: string; text: string; visual: ReactNode; range: string };
+import { H2, LEDE, SECTION_Y } from "../styles";
+import SampleAvatar from "./SampleAvatar";
+
+interface Step {
+  title: string;
+  text: string;
+  visual: ReactNode;
+  range: string;
+}
 
 const STEPS: Step[] = [
   {
@@ -27,11 +34,17 @@ const STEPS: Step[] = [
       <>
         <span className="flex">
           {["MC", "JR", "TK"].map((initials, index) => (
-            <SampleAvatar key={initials} initials={initials} className={`size-[34px] border-2 border-surface text-xs ${index ? "-ml-1.5" : ""}`} />
+            <SampleAvatar
+              key={initials}
+              initials={initials}
+              className={`size-[34px] border-2 border-surface text-xs ${index ? "-ml-1.5" : ""}`}
+            />
           ))}
         </span>
         <span className="text-[15px] leading-[1.35] text-ink-2">
-          <strong className="block font-display leading-[1.2] font-semibold text-ink">Students offering help</strong>
+          <strong className="block font-display leading-[1.2] font-semibold text-ink">
+            Students offering help
+          </strong>
           Listed on every course page
         </span>
       </>
@@ -45,7 +58,9 @@ const STEPS: Step[] = [
       <>
         <SampleAvatar initials="MC" />
         <span className="text-[15px] leading-[1.35] text-ink-2">
-          <strong className="block font-display leading-[1.2] font-semibold text-ink">Maya C.</strong>
+          <strong className="block font-display leading-[1.2] font-semibold text-ink">
+            Maya C.
+          </strong>
           <span className="mt-1.5 flex flex-wrap gap-1.5">
             <CourseTag code="CIS 3400" size="sm" />
             <CourseTag code="MTH 2003" size="sm" />
@@ -65,29 +80,46 @@ export default function HowItWorks() {
     <section id="how" aria-labelledby="how-title" className={SECTION_Y}>
       <div className="wrap">
         <div className="reveal">
-          <h2 id="how-title" className={H2}>How it works</h2>
-          <p className={LEDE}>Three steps from “I’m stuck” to knowing who can help.</p>
+          <h2 id="how-title" className={H2}>
+            How it works
+          </h2>
+          <p className={LEDE}>
+            Three steps from “I’m stuck” to knowing who can help.
+          </p>
         </div>
 
         <ol className="relative mt-12 grid gap-10 timeline-[--steps] md:grid-cols-3 md:gap-8">
-          <li aria-hidden="true" className="absolute top-[21px] left-[22px] hidden h-0.5 w-[calc((100%-64px)*2/3+64px)] bg-line md:block">
-            <span className="absolute inset-0 origin-left scroll-draw-x scroll-on-[--steps] scroll-range-[cover_18%_cover_46%] bg-brand" />
+          <li
+            aria-hidden="true"
+            className="absolute top-[21px] left-[22px] hidden h-0.5 w-[calc((100%-64px)*2/3+64px)] bg-line md:block"
+          >
+            <span className="absolute inset-0 origin-left bg-brand scroll-draw-x scroll-on-[--steps] scroll-range-[cover_18%_cover_46%]" />
           </li>
           {STEPS.map((step, index) => (
-            <li key={step.title} className="group relative flex flex-col pl-16 md:pl-0">
+            <li
+              key={step.title}
+              className="group relative flex flex-col pl-16 md:pl-0"
+            >
               <span
                 aria-hidden="true"
-                className={`absolute top-0 left-0 z-10 grid size-11 scroll-dot-on scroll-on-[view()] scroll-range-[cover_40%_cover_44%] place-items-center rounded-full border-2 border-brand bg-brand font-display text-[17px] leading-none font-semibold text-white md:relative md:scroll-on-[--steps] ${step.range}`}
+                className={`absolute top-0 left-0 z-10 grid size-11 place-items-center rounded-full border-2 border-brand bg-brand font-display text-[17px] leading-none font-semibold text-white scroll-dot-on scroll-on-[view()] scroll-range-[cover_40%_cover_44%] md:relative md:scroll-on-[--steps] ${step.range}`}
               >
                 {index + 1}
               </span>
               {index < STEPS.length - 1 && (
-                <span aria-hidden="true" className="absolute top-[50px] -bottom-[34px] left-[21px] w-0.5 bg-line md:hidden">
-                  <span className="absolute inset-0 origin-top scroll-grow-y scroll-on-[view()] scroll-range-[cover_30%_cover_60%] bg-brand" />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[50px] -bottom-[34px] left-[21px] w-0.5 bg-line md:hidden"
+                >
+                  <span className="absolute inset-0 origin-top bg-brand scroll-grow-y scroll-on-[view()] scroll-range-[cover_30%_cover_60%]" />
                 </span>
               )}
-              <h3 className="mt-2 font-display text-[21px] leading-tight font-semibold tracking-[-0.02em] md:mt-[22px]">{step.title}</h3>
-              <p className="mt-2 max-w-[36ch] text-[17px] text-muted">{step.text}</p>
+              <h3 className="mt-2 font-display text-[21px] leading-tight font-semibold tracking-[-0.02em] md:mt-[22px]">
+                {step.title}
+              </h3>
+              <p className="mt-2 max-w-[36ch] text-[17px] text-muted">
+                {step.text}
+              </p>
               <div
                 aria-hidden="true"
                 className="mt-[22px] flex min-h-[92px] items-center gap-2.5 rounded-xl border border-line bg-surface p-4 transition-[border-color,box-shadow,translate] duration-250 ease-soft group-hover:-translate-y-0.5 group-hover:border-brand-200 group-hover:shadow-lift"
