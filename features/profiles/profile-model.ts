@@ -10,6 +10,9 @@ export function profileHref(studentId: string) {
   return `/students/${encodeURIComponent(studentId)}`;
 }
 
+/** What a student types, with their email, to confirm deleting their account. */
+export const DELETE_ACCOUNT_PHRASE = "delete my account";
+
 /** The most Help Offers one student may have at a time. */
 export const MAX_HELP_OFFERS = 15;
 
@@ -38,7 +41,7 @@ export function parseBio(raw: string): FieldResult<string> {
 
 // Contact details
 
-/** The contact details a student may add. Each is optional and owner-only for now. */
+/** The contact details a student may add. Each is optional and visible only to the owner and their Connections. */
 export const CONTACT_FIELDS = ["phone", "discord", "instagram"] as const;
 export type ContactField = (typeof CONTACT_FIELDS)[number];
 export type Contacts = Partial<Record<ContactField, string>>;

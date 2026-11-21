@@ -25,9 +25,17 @@ The signed-in student a page or change acts for. A Viewer always has a **Profile
 _Avoid_: User, Account (the login identity)
 
 **Connection Request**:
-A student's request to a **Volunteer**, about one **Course**, to see the Volunteer's contact details. The Volunteer accepts or declines it.
-_Avoid_: Contact Request
+A student's request to a **Volunteer**, about one **Course**, to share contact details with each other. The Volunteer accepts or declines it. After a decline, the sender can't ask again for 7 days, about any Course; the student who declined can.
+_Avoid_: Contact Request, Connection (only an accepted request is one)
 
 **Connection**:
-What an accepted **Connection Request** creates: the requester can see the Volunteer's contact details. It is one-way, and the Volunteer can revoke it.
+What an accepted **Connection Request** creates: both students can see each other's contact details. It is mutual, and either student can remove it.
 _Avoid_: Contact Access
+
+**Relationship**:
+Where a **Viewer** stands with one other student: nothing, a pending **Connection Request** in either direction, a declined one still in its cooldown (shown only to its sender), or a **Connection**. Two students have at most one at a time.
+_Avoid_: Status, Link
+
+**Cooldown**:
+The 7 days after a **Connection Request** is declined, during which its sender can't send the same student another, about any **Course**. Only the sender sees it. Withdrawing a request or removing a **Connection** starts none.
+_Avoid_: Block, Ban

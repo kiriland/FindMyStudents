@@ -24,7 +24,12 @@ const atTop = () => false;
 const LINK =
   "rounded-lg px-3 py-[9px] font-display text-[15px] leading-none font-medium transition-colors duration-150";
 
-export default function Navbar() {
+type NavbarProps = {
+  /** Shown next to the Profile links, such as a count of pending requests. */
+  profileBadge?: React.ReactNode;
+};
+
+export default function Navbar({ profileBadge }: NavbarProps) {
   const { account, isLoading, error } = useAuth();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,6 +134,7 @@ export default function Navbar() {
             <AccountMenu
               email={account.email}
               profileHref={profileHref(account.userId)}
+              profileBadge={profileBadge}
               onLogout={handleLogout}
               loggingOut={loggingOut}
             />
@@ -195,7 +201,7 @@ export default function Navbar() {
                   aria-current={pathname === ownProfile ? "page" : undefined}
                   className={`${LINK} px-3 py-3.5 text-[17px] text-ink-2 hover:bg-well aria-[current=page]:bg-brand-50 aria-[current=page]:text-brand-strong`}
                 >
-                  Your profile
+                  Your profile{profileBadge}
                 </Link>
               )}
               <button

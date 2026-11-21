@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import PendingRequestsBadge from "@/features/profiles/components/PendingRequestsBadge";
 
 // Lexend for headings and interface text, Source Sans 3 for reading.
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend", display: "swap" });
@@ -33,7 +34,7 @@ export default function RootLayout({
         {/* Navbar reads usePathname(), which suspends while prerendering
             routes with dynamic params such as /students/[id]. */}
         <Suspense fallback={<div aria-hidden="true" className="h-[68px]" />}>
-          <Navbar />
+          <Navbar profileBadge={<Suspense><PendingRequestsBadge /></Suspense>} />
         </Suspense>
         {children}
         <Footer />

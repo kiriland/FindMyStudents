@@ -3,17 +3,25 @@ import { buttonClass } from "@/components/ui/button";
 import { ArrowIcon } from "@/components/ui/icons";
 import { loginHref } from "@/features/auth/return-to";
 import { courseHref } from "@/features/courses/course-model";
-import { getCourseVolunteers, getViewer } from "../profiles";
+import { getCourseVolunteers, getViewer, hasContactDetails } from "../profiles";
+import { getRelationships } from "../connections";
 import { profileHref } from "../profile-model";
 import Avatar from "./Avatar";
+import ConnectionControls from "./ConnectionControls";
 
 /**
  * A Course's Volunteers: cards for signed-in students, only a count for
  * signed-out visitors. What a viewer may see is decided by the Profiles module.
  */
-export default async function CourseVolunteers({ courseCode }: { courseCode: string }) {
+export default async function CourseVolunteers({ courseCode, title }: { courseCode: string; title: string }) {
   const viewer = await getViewer();
   const { count, cards } = await getCourseVolunteers(viewer, courseCode);
+  // One batched read for every card, however many Volunteers there are.
+  const relationships = viewer && cards?.length ? await getRelationships(viewer, cards.map((card) => card.id)) : null;
+  // Only read when a card can show the request form, which mentions it.
+  const hasContacts = viewer && [...(relationships?.values() ?? [])].some((relationship) => relationship.status === "none")
+    ? await hasContactDetails(viewer) : false;
+  const offer = { courseCode, title, href: courseHref({ courseCode }) };
   return (
     <section className="mt-8 border-t border-line pt-7" aria-labelledby="volunteers-heading">
       <div className="mb-4 flex items-center gap-2.5">
@@ -47,12 +55,14 @@ export default async function CourseVolunteers({ courseCode }: { courseCode: str
       ) : (
         <>
           <ul className="flex flex-col gap-2.5">
-            {cards.map((volunteer) => (
-              <li key={volunteer.id}>
+            {cards.map((volunteer) => {
+              const relationship = relationships?.get(volunteer.id);
+              return (
+              <li key={volunteer.id} className="overflow-hidden rounded-xl border border-line bg-surface transition-colors duration-150 hover:border-brand-200">
                 <Link
                   href={volunteer.href}
                   prefetch={false}
-                  className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5 rounded-xl border border-line bg-surface px-4 py-3.5 transition-colors duration-150 hover:border-brand-200 hover:bg-[#f8fbff] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+                  className="group grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5 px-4 py-3.5 transition-colors duration-150 hover:bg-[#f8fbff] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
                 >
                   <Avatar size="small" initials={volunteer.initials} pictureUrl={volunteer.pictureUrl} />
                   <span>
@@ -63,8 +73,12 @@ export default async function CourseVolunteers({ courseCode }: { courseCode: str
                   </span>
                   <ArrowIcon className="hidden size-[18px] text-brand-strong transition-transform duration-250 ease-soft group-hover:translate-x-[3px] sm:block" />
                 </Link>
+                {viewer && relationship && relationship.status !== "self" && (
+                  <ConnectionControls studentId={volunteer.id} displayName={volunteer.displayName} relationship={relationship} offers={[offer]} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} onCard />
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
           {count > cards.length && <p className="mt-3 text-sm text-subtle">Showing the newest {cards.length} of {count} volunteers.</p>}
         </>

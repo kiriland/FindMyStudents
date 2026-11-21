@@ -1,8 +1,11 @@
 "use server";
 
+import { acceptRequest, declineRequest, removeConnection, sendRequest, withdrawRequest } from "./connections";
+import { connectionRefusalMessage } from "./connection-model";
 import { refresh } from "next/cache";
 import { CONTACT_FIELDS } from "./profile-model";
-import { addHelpOffer, confirmPictureUpload, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
+import { text } from "./profile-storage";
+import { addHelpOffer, confirmPictureUpload, deleteProfileData, getViewer, removeHelpOffer, removePicture, startPictureUpload, updateProfile, type Outcome, type PictureUploadOutcome, type ProfileEdit, type ProfileEditOutcome, type Viewer } from "./profiles";
 
 /** What the edit-mode form shows: nothing yet (null), or how the last save went. */
 export type ProfileFormState = ProfileEditOutcome | Outcome | null;
@@ -40,9 +43,6 @@ async function asSignedInStudent<Result>(
 }
 
 // Anyone can call a server action with any arguments, so each is read as text.
-function text(value: unknown) {
-  return typeof value === "string" ? value : "";
-}
 
 /**
  * Saves the edit-mode form to the signed-in student's own Profile. The Profile
@@ -98,4 +98,53 @@ export async function deletePicture(): Promise<Outcome> {
     await removePicture(viewer);
     return done();
   });
+}
+
+export async function sendConnectionRequest(recipient: unknown, courseCode: unknown, message: unknown): Promise<Outcome> {
+  return asSignedInStudent("Sending a Connection Request", "Your request could not be sent. Please try again.", async (viewer) => {
+    const outcome = await sendRequest(viewer, text(recipient), text(courseCode), text(message));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function withdrawConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Withdrawing a Connection Request", "Your request could not be withdrawn. Please try again.", async (viewer) => {
+    const outcome = await withdrawRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function acceptConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Accepting a Connection Request", "Your request could not be accepted. Please try again.", async (viewer) => {
+    const outcome = await acceptRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function declineConnectionRequest(otherId: unknown, requestId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Declining a Connection Request", "Your request could not be declined. Please try again.", async (viewer) => {
+    const outcome = await declineRequest(viewer, text(otherId), text(requestId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+export async function removeConnectionWith(otherId: unknown): Promise<Outcome> {
+  return asSignedInStudent("Removing a Connection", "The connection could not be removed. Please try again.", async (viewer) => {
+    const outcome = await removeConnection(viewer, text(otherId));
+    return outcome.ok ? done() : failed(connectionRefusalMessage(outcome));
+  });
+}
+
+/**
+ * Deletes the signed-in student's data once they have confirmed. Nothing is
+ * refreshed: the browser deletes their login next and leaves the page.
+ */
+export async function deleteAccount(email: unknown, phrase: unknown): Promise<Outcome> {
+  // Not asSignedInStudent: a student whose deletion failed part way has no Viewer.
+  try {
+    return await deleteProfileData(text(email), text(phrase));
+  } catch (error) {
+    console.error("Deleting an account failed", { error });
+    return failed("Your account could not be deleted. Please try again.");
+  }
 }

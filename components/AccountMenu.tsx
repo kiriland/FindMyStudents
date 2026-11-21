@@ -7,6 +7,7 @@ import { ChevronIcon } from "@/components/ui/icons";
 type AccountMenuProps = {
   email: string | null;
   profileHref: string;
+  profileBadge?: React.ReactNode;
   onLogout: () => void;
   loggingOut: boolean;
 };
@@ -19,7 +20,7 @@ const ITEM =
  * their account links. Esc closes it and refocuses the button; so does a click
  * outside, without moving focus.
  */
-export default function AccountMenu({ email, profileHref, onLogout, loggingOut }: AccountMenuProps) {
+export default function AccountMenu({ email, profileHref, profileBadge, onLogout, loggingOut }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -59,6 +60,7 @@ export default function AccountMenu({ email, profileHref, onLogout, loggingOut }
           {initial || "•"}
         </span>
         <span className="truncate">{email ?? "Logged in"}</span>
+        {profileBadge}
         <ChevronIcon className={`size-4 text-subtle transition-transform duration-250 ease-soft ${isOpen ? "rotate-180" : ""}`} />
       </button>
       {/* Kept in the page so it can animate; invisible (and out of the tab order) while closed. */}
@@ -72,7 +74,7 @@ export default function AccountMenu({ email, profileHref, onLogout, loggingOut }
           <span className="block text-[13px] text-subtle">Logged in as</span>
           <strong className="block truncate font-display text-sm font-semibold">{email ?? "your account"}</strong>
         </div>
-        <Link href={profileHref} className={ITEM} onClick={() => setIsOpen(false)}>Your profile</Link>
+        <Link href={profileHref} className={ITEM} onClick={() => setIsOpen(false)}>Your profile{profileBadge}</Link>
         <button
           type="button"
           disabled={loggingOut}

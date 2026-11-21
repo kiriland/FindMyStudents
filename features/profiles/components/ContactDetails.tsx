@@ -38,25 +38,30 @@ const CONTACT_LINKS: Record<ContactField, (value: string) => React.ReactNode> = 
   ),
 };
 
-/** The owner's own contact details. Only ever rendered for the owner. */
-export default function ContactDetails({ contacts }: { contacts: Contacts }) {
+/** Contact details, or `empty` when there are none. */
+export function ContactList({ contacts, empty }: { contacts: Contacts; empty: string }) {
   const filled = CONTACT_FIELDS.flatMap((field) => {
     const value = contacts[field];
     return value ? [{ field, value }] : [];
   });
+  return filled.length ? (
+    <ul className="flex flex-col gap-1.5">
+      {filled.map(({ field, value }) => <li key={field} className="flex min-w-0 items-center gap-2.5">{CONTACT_LINKS[field](value)}</li>)}
+    </ul>
+  ) : (
+    <p className="text-sm text-subtle">{empty}</p>
+  );
+}
+
+/** A Profile's contact details. Only ever rendered for the owner or a Connection. */
+export default function ContactDetails({ contacts, isOwner }: { contacts: Contacts; isOwner: boolean }) {
   return (
     <section className="flex flex-col gap-3 border-t border-line pt-5" aria-labelledby="profile-contacts">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="profile-contacts" className="font-display text-base leading-[1.3] font-semibold">Contact details</h2>
-        <PrivateBadge />
+        {isOwner && <PrivateBadge label="Only you and your Connections" />}
       </div>
-      {filled.length ? (
-        <ul className="flex flex-col gap-1.5">
-          {filled.map(({ field, value }) => <li key={field} className="flex min-w-0 items-center gap-2.5">{CONTACT_LINKS[field](value)}</li>)}
-        </ul>
-      ) : (
-        <p className="text-sm text-subtle">No contact details yet. Add them with Edit profile.</p>
-      )}
+      <ContactList contacts={contacts} empty={isOwner ? "No contact details yet. Add them with Edit profile." : "No contact details yet."} />
     </section>
   );
 }

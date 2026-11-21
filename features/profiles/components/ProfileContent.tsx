@@ -1,9 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { loginHref } from "@/features/auth/return-to";
-import { getProfile, getViewer, type ProfileView } from "../profiles";
+import { getProfile, getViewer, hasContactDetails, isDeletedStudent, type ProfileView } from "../profiles";
 import { profileHref } from "../profile-model";
+import { getConnectionsOverview, getRelationship } from "../connections";
 import Avatar from "./Avatar";
+import ConnectionControls from "./ConnectionControls";
+import ConnectionsSection from "./ConnectionsSection";
 import ContactDetails from "./ContactDetails";
+import DeleteAccount from "./DeleteAccount";
 import HelpOfferEditor from "./HelpOfferEditor";
 import HelpOffers from "./HelpOffers";
 import OwnProfile from "./OwnProfile";
@@ -11,13 +15,21 @@ import { ID_CARD, PROFILE_GRID, SECTION_TITLE } from "./profile-styles";
 
 export type ProfileParams = Promise<{ id: string }>;
 
-
 export default async function ProfileContent({ params }: { params: ProfileParams }) {
   const { id } = await params;
   const viewer = await getViewer();
-  if (!viewer) redirect(loginHref(profileHref(id)));
+  if (!viewer) {
+    // Their data is gone but deleting the login failed: let them finish.
+    if (await isDeletedStudent()) return <div className="mx-auto w-full max-w-[560px]"><DeleteAccount /></div>;
+    redirect(loginHref(profileHref(id)));
+  }
   const profile = await getProfile(viewer, id);
   if (!profile) notFound();
+  const overview = profile.isOwner ? await getConnectionsOverview(viewer) : null;
+  const relationship = profile.isOwner ? null : await getRelationship(viewer, id);
+  // Only read when the request form can show, which mentions it.
+  const hasContacts = relationship?.status === "none" && profile.helpOffers.length > 0
+    ? await hasContactDetails(viewer) : false;
 
   const identity = <Identity profile={profile} />;
   return (
@@ -30,15 +42,20 @@ export default async function ProfileContent({ params }: { params: ProfileParams
           initials={profile.initials}
           contacts={profile.contacts}
           identity={identity}
-          contactDetails={<ContactDetails contacts={profile.contacts} />}
+          contactDetails={<ContactDetails contacts={profile.contacts} isOwner />}
           about={<ProfileDetails profile={profile} />}
         >
           {/* Always editable, outside edit mode: it's what students change most. */}
           <HelpOfferEditor offers={profile.helpOffers} />
+          {overview && <ConnectionsSection overview={overview} />}
         </OwnProfile>
       ) : (
         <>
-          <aside aria-label="Student" className={ID_CARD}>{identity}</aside>
+          <aside aria-label="Student" className={ID_CARD}>
+            {identity}
+            {relationship && <ConnectionControls studentId={id} displayName={profile.displayName} relationship={relationship} offers={profile.helpOffers} ownProfileHref={profileHref(viewer.studentId)} hasContacts={hasContacts} />}
+            {profile.contacts && <ContactDetails contacts={profile.contacts} isOwner={false} />}
+          </aside>
           <div className="flex min-w-0 animate-fade-up flex-col gap-11">
             <ProfileDetails profile={profile} />
             <HelpOffers offers={profile.helpOffers} />

@@ -41,7 +41,7 @@ export default async function CourseContent({ params }: { params: CourseParams }
         </h1>
       </header>
       <CourseDescription description={course.description} sourceUrl={course.sourceUrl} />
-      <CourseVolunteers courseCode={course.courseCode} />
+      <CourseVolunteers courseCode={course.courseCode} title={course.title} />
     </article>
   );
 }
