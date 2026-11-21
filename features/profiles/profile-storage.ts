@@ -164,7 +164,10 @@ export async function batchGet(
         }),
       );
       for (const item of result.Responses?.[table] ?? []) {
-        items.set(itemId(item as ItemKey), item);
+        if (typeof item.pk !== "string" || typeof item.sk !== "string") {
+          throw new Error("Stored item has no key.");
+        }
+        items.set(itemId({ pk: item.pk, sk: item.sk }), item);
       }
       remaining = result.UnprocessedKeys?.[table]?.Keys ?? [];
     }

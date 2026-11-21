@@ -4,12 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-type TerraformOutputs = {
-  aws_region: { value: string };
-  function_name: { value: string };
-};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-type InvokeMetadata = { FunctionError?: string; StatusCode?: number };
+function stringOutput(outputs: unknown, name: string): string {
+  const output = isRecord(outputs) ? outputs[name] : undefined;
+  if (!isRecord(output) || typeof output.value !== "string") {
+    throw new Error(`Terraform output ${name} is missing.`);
+  }
+  return output.value;
+}
 
 const FLAGS = new Map([
   ["--effective-date", "effectiveDate"],
@@ -33,24 +38,26 @@ for (let i = 0; i < args.length; i++) {
 const infrastructure = fileURLToPath(
   new URL("../infrastructure/course-importer", import.meta.url),
 );
-const outputs = JSON.parse(
+const outputs: unknown = JSON.parse(
   execFileSync("terraform", [`-chdir=${infrastructure}`, "output", "-json"], {
     encoding: "utf8",
   }),
-) as TerraformOutputs;
+);
+const region = stringOutput(outputs, "aws_region");
+const functionName = stringOutput(outputs, "function_name");
 const workDir = mkdtempSync(join(tmpdir(), "course-import-"));
 try {
   const responseFile = join(workDir, "response.json");
-  const metadata = JSON.parse(
+  const metadata: unknown = JSON.parse(
     execFileSync(
       "aws",
       [
         "lambda",
         "invoke",
         "--region",
-        outputs.aws_region.value,
+        region,
         "--function-name",
-        outputs.function_name.value,
+        functionName,
         "--invocation-type",
         "RequestResponse",
         "--cli-binary-format",
@@ -66,10 +73,14 @@ try {
       ],
       { encoding: "utf8", maxBuffer: 1024 * 1024 },
     ),
-  ) as InvokeMetadata;
+  );
   const response: unknown = JSON.parse(readFileSync(responseFile, "utf8"));
   console.log(JSON.stringify(response, null, 2));
-  if (metadata.FunctionError || metadata.StatusCode !== 200) {
+  if (
+    !isRecord(metadata) ||
+    Boolean(metadata.FunctionError) ||
+    metadata.StatusCode !== 200
+  ) {
     process.exitCode = 1;
   }
 } finally {

@@ -127,7 +127,7 @@ export function checkPictureFile(
   type: string,
   size: number,
 ): FieldResult<PictureType> {
-  if (!PICTURE_TYPES.includes(type as PictureType)) {
+  if (!isPictureType(type)) {
     return { ok: false, error: PICTURE_TYPE_ERROR };
   }
   if (!Number.isSafeInteger(size) || size <= 0) {
@@ -136,5 +136,9 @@ export function checkPictureFile(
   if (size > PICTURE_MAX_BYTES) {
     return { ok: false, error: PICTURE_SIZE_ERROR };
   }
-  return { ok: true, value: type as PictureType };
+  return { ok: true, value: type };
+}
+
+function isPictureType(type: string): type is PictureType {
+  return PICTURE_TYPES.some((pictureType) => pictureType === type);
 }

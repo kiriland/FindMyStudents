@@ -110,15 +110,17 @@ const PAIR_FIELDS = [
   "students",
 ];
 
+function isStudentPair(value: unknown): value is [string, string] {
+  return Array.isArray(value) && value.length === 2 && value.every(isUuid);
+}
+
 function readPair(item: StoredItem | undefined): PairRecord | null {
   if (!item) {
     return null;
   }
   if (item.status === "connected") {
     if (
-      !Array.isArray(item.students) ||
-      item.students.length !== 2 ||
-      !item.students.every(isUuid) ||
+      !isStudentPair(item.students) ||
       typeof item.courseCode !== "string" ||
       typeof item.connectedAt !== "string"
     ) {
@@ -126,21 +128,23 @@ function readPair(item: StoredItem | undefined): PairRecord | null {
     }
     return {
       status: "connected",
-      students: item.students as [string, string],
+      students: item.students,
       courseCode: item.courseCode,
       connectedAt: item.connectedAt,
     };
   }
   if (
-    ![item.sender, item.recipient, item.requestId].every(isUuid) ||
+    !isUuid(item.sender) ||
+    !isUuid(item.recipient) ||
+    !isUuid(item.requestId) ||
     typeof item.courseCode !== "string"
   ) {
     throw new Error("Invalid relationship item.");
   }
   const base = {
-    sender: item.sender as string,
-    recipient: item.recipient as string,
-    requestId: item.requestId as string,
+    sender: item.sender,
+    recipient: item.recipient,
+    requestId: item.requestId,
     courseCode: item.courseCode,
   };
   // The sender's own copy of a pending request has no message: only the recipient sees it.
@@ -425,13 +429,15 @@ async function pendingOutgoing(studentId: string) {
   const version = profile.connectionsVersion;
   if (
     version !== undefined &&
-    (!Number.isSafeInteger(version) || (version as number) < 0)
+    (typeof version !== "number" ||
+      !Number.isSafeInteger(version) ||
+      version < 0)
   ) {
     throw new Error("Invalid Connections version.");
   }
   return {
     count: await countPending(studentId, "sender"),
-    version: version as number | undefined,
+    version,
   };
 }
 

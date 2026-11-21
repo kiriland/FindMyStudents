@@ -65,7 +65,10 @@ export default function Navbar({ profileBadge }: NavbarProps) {
       menuButton.current?.focus();
     }
     function handlePointerDown(event: PointerEvent) {
-      if (!header.current?.contains(event.target as Node)) {
+      if (
+        !(event.target instanceof Node) ||
+        !header.current?.contains(event.target)
+      ) {
         setMenuOpen(false);
       }
     }

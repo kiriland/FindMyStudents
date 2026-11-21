@@ -18,7 +18,6 @@ import {
   sendRequest,
   withdrawRequest,
 } from "./connections";
-import { CONTACT_FIELDS } from "./profile-model";
 import { text } from "./profile-storage";
 import {
   addHelpOffer,
@@ -78,12 +77,12 @@ export async function saveProfile(
   _previous: ProfileFormState,
   formData: FormData,
 ): Promise<ProfileFormState> {
-  const edit = {
+  const edit: ProfileEdit = {
     bio: text(formData.get("bio")),
-    ...Object.fromEntries(
-      CONTACT_FIELDS.map((field) => [field, text(formData.get(field))]),
-    ),
-  } as ProfileEdit;
+    phone: text(formData.get("phone")),
+    discord: text(formData.get("discord")),
+    instagram: text(formData.get("instagram")),
+  };
   return asSignedInStudent(
     "Saving a Profile",
     "Your profile could not be saved. Please try again.",

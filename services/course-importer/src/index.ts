@@ -375,10 +375,16 @@ function effectiveDateFor(event: unknown = {}) {
   if (!isRecord(event)) {
     throw new Error("Event must be a JSON object.");
   }
+  const { scheduledTime } = event;
+  if (
+    scheduledTime !== undefined &&
+    typeof scheduledTime !== "string" &&
+    typeof scheduledTime !== "number"
+  ) {
+    throw new TypeError("Invalid scheduledTime.");
+  }
   const scheduled =
-    event.scheduledTime === undefined
-      ? new Date()
-      : new Date(event.scheduledTime as string | number);
+    scheduledTime === undefined ? new Date() : new Date(scheduledTime);
   if (Number.isNaN(scheduled.getTime())) {
     throw new TypeError("Invalid scheduledTime.");
   }
@@ -589,7 +595,7 @@ async function fetchCatalog({
         );
       }
       ids.add(record.id);
-      records.push(record as SourceRecord);
+      records.push({ ...record, id: record.id });
     }
     if (records.length > total) {
       throw new Error("Source returned more courses than its total count.");

@@ -39,7 +39,10 @@ export default function AccountMenu({
       return;
     }
     function handlePointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      if (
+        !(event.target instanceof Node) ||
+        !rootRef.current?.contains(event.target)
+      ) {
         setIsOpen(false);
       }
     }

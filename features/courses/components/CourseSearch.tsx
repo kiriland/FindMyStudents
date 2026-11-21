@@ -120,7 +120,7 @@ export default function CourseSearch() {
       if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       if (
         target?.closest("input, textarea, select, [contenteditable]") ||
         document.querySelector("dialog[open]")
@@ -201,7 +201,7 @@ export default function CourseSearch() {
     const items = [
       ...(suggestionList.current?.querySelectorAll("button") ?? []),
     ];
-    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    const index = items.findIndex((item) => item === document.activeElement);
     const next = index + step;
     event.preventDefault();
     if (next < 0) {

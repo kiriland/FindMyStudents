@@ -16,7 +16,7 @@ import { isUuid } from "@/lib/uuid";
 
 import type { PictureType } from "./profile-model";
 
-import { PICTURE_MAX_BYTES } from "./profile-model";
+import { PICTURE_MAX_BYTES, PICTURE_TYPES } from "./profile-model";
 
 /**
  * Profile picture storage, used only by the Profiles module. Uploads land in
@@ -125,11 +125,8 @@ export async function deleteUpload(upload: QuarantinedUpload) {
 
 /** The real type of a picture, from its first bytes rather than what the browser claimed. */
 function sniffType(bytes: Uint8Array): PictureType | null {
-  for (const [type, signature] of Object.entries(SIGNATURES) as [
-    PictureType,
-    number[],
-  ][]) {
-    if (signature.every((byte, index) => bytes[index] === byte)) {
+  for (const type of PICTURE_TYPES) {
+    if (SIGNATURES[type].every((byte, index) => bytes[index] === byte)) {
       return type;
     }
   }

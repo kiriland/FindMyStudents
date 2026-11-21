@@ -112,6 +112,7 @@ export interface CourseVolunteers {
 
 /** The fields of the edit-mode form. */
 export type ProfileEdit = { bio: string } & Record<ContactField, string>;
+const EDIT_FIELDS = ["bio", ...CONTACT_FIELDS] as const;
 
 export type ProfileEditOutcome = Outcome<{
   fieldErrors: Partial<Record<keyof ProfileEdit, string>>;
@@ -182,6 +183,12 @@ function readHelpOffer(item: Record<string, unknown>) {
  * The signed-in student for this request, or null when signed out. The first
  * time a student is seen, their Profile is created from the names in their token.
  */
+/** The only place a Viewer is made: the brand stops other modules forging one. */
+function viewerFor(studentId: string): Viewer {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the brand has no runtime value, so a cast is the only way to apply it.
+  return { studentId } as Viewer;
+}
+
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   const student = await getSignedInStudent();
   if (!student) {
@@ -201,7 +208,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     }
     knownProfiles.add(student.id);
   }
-  return { studentId: student.id } as Viewer;
+  return viewerFor(student.id);
 });
 
 /**
@@ -367,7 +374,7 @@ export async function updateProfile(
     return { ok: false, fieldErrors };
   }
 
-  const fields = Object.keys(values) as (keyof ProfileEdit)[];
+  const fields = EDIT_FIELDS.filter((field) => field in values);
   const set = fields.filter((field) => values[field]);
   const remove = fields.filter((field) => !values[field]);
   await db.send(
@@ -735,7 +742,7 @@ export async function deleteProfileData(
       message: "Your session has ended. Log in again to delete your account.",
     };
   }
-  const viewer = { studentId: student.id } as Viewer;
+  const viewer = viewerFor(student.id);
   if (
     student.email === "" ||
     email.trim().toLowerCase() !== student.email.toLowerCase() ||

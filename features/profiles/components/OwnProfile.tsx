@@ -161,12 +161,13 @@ interface FormProps {
 function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
   const [bio, setBio] = useState(savedBio);
   // Controlled, so a rejected save keeps what the student typed.
-  const [contactValues, setContactValues] = useState(
-    () =>
-      Object.fromEntries(
-        CONTACT_FIELDS.map((field) => [field, contacts[field] ?? ""]),
-      ) as Record<ContactField, string>,
-  );
+  const [contactValues, setContactValues] = useState<
+    Record<ContactField, string>
+  >(() => ({
+    phone: contacts.phone ?? "",
+    discord: contacts.discord ?? "",
+    instagram: contacts.instagram ?? "",
+  }));
   const [state, formAction, isSaving] = useActionState<
     ProfileFormState,
     FormData

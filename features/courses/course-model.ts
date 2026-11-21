@@ -78,6 +78,7 @@ export async function fetchCoursePage(
   if (!response.ok) {
     throw new Error("Could not load courses.");
   }
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- our own /api/courses route builds this response from a CoursePage.
   return response.json() as Promise<CoursePage>;
 }
 
