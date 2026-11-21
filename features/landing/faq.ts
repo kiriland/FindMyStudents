@@ -1,4 +1,8 @@
-export type FaqGroup = { id: string; title: string; items: { question: string; answer: string }[] };
+export interface FaqGroup {
+  id: string;
+  title: string;
+  items: { question: string; answer: string }[];
+}
 
 // Each answer describes what the app does today. Update them when behaviour changes.
 export const FAQ: FaqGroup[] = [
@@ -8,7 +12,8 @@ export const FAQ: FaqGroup[] = [
     items: [
       {
         question: "Do I need an account to search for courses?",
-        answer: "No. Anyone can search the catalogue and open a course. To see which students offer help with it, log in.",
+        answer:
+          "No. Anyone can search the catalogue and open a course. To see which students offer help with it, log in.",
       },
       {
         question: "What can I search for?",
@@ -17,7 +22,8 @@ export const FAQ: FaqGroup[] = [
       },
       {
         question: "Where do the courses come from?",
-        answer: "From the Baruch College course catalogue. Course pages link to the official catalogue entry when one is available.",
+        answer:
+          "From the Baruch College course catalogue. Course pages link to the official catalogue entry when one is available.",
       },
     ],
   },
@@ -35,7 +41,10 @@ export const FAQ: FaqGroup[] = [
         answer:
           "A quick check from Cloudflare helps keep automated sign-ups out. Most of the time it runs in the background without you doing anything.",
       },
-      { question: "Is FindMyStudents free?", answer: "Yes. There are no payments or subscriptions." },
+      {
+        question: "Is FindMyStudents free?",
+        answer: "Yes. There are no payments or subscriptions.",
+      },
     ],
   },
   {
@@ -49,7 +58,8 @@ export const FAQ: FaqGroup[] = [
       },
       {
         question: "How many courses can I offer help with?",
-        answer: "Up to 15 at a time. Adding or removing a course saves straight away, so you can change them whenever you like.",
+        answer:
+          "Up to 15 at a time. Adding or removing a course saves straight away, so you can change them whenever you like.",
       },
     ],
   },
@@ -64,7 +74,8 @@ export const FAQ: FaqGroup[] = [
       },
       {
         question: "Who can see my contact details?",
-        answer: "Only you, for now. Your phone number, Discord and Instagram are optional and aren’t shown to other students.",
+        answer:
+          "Only you, for now. Your phone number, Discord and Instagram are optional and aren’t shown to other students.",
       },
       {
         question: "What profile picture can I upload?",
@@ -73,7 +84,8 @@ export const FAQ: FaqGroup[] = [
       },
       {
         question: "Is this an official Baruch College service?",
-        answer: "No. FindMyStudents is an independent project built by Baruch students for the Baruch community.",
+        answer:
+          "No. FindMyStudents is an independent project built by Baruch students for the Baruch community.",
       },
     ],
   },

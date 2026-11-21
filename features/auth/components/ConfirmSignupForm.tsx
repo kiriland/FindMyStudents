@@ -1,20 +1,40 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+
 import Input, { INPUT_CLASS } from "@/components/Input";
 import { buttonClass, LINK_CLASS } from "@/components/ui/button";
 import Field, { FormAlert, Spinner } from "@/components/ui/Field";
 import { CheckIcon } from "@/components/ui/icons";
 import { confirmEmailSignup } from "@/features/auth/auth-client";
 import { keepReturnTo } from "@/features/auth/return-to-browser";
+
 import AuthShell from "./AuthShell";
 
 const STEPS = [
-  { title: "Account created", text: "Your name and email are saved.", state: "done" },
-  { title: "Confirm your email", text: "Enter the code from your inbox.", state: "current" },
-  { title: "Log in", text: "Then set up your profile and Help Offers.", state: "next" },
+  {
+    title: "Account created",
+    text: "Your name and email are saved.",
+    state: "done",
+  },
+  {
+    title: "Confirm your email",
+    text: "Enter the code from your inbox.",
+    state: "current",
+  },
+  {
+    title: "Log in",
+    text: "Then set up your profile and Help Offers.",
+    state: "next",
+  },
 ] as const;
+const STEP_MARKER: Record<(typeof STEPS)[number]["state"], string> = {
+  done: "border-brand bg-brand text-white",
+  current:
+    "border-brand bg-surface text-brand-strong shadow-[0_0_0_6px_rgb(37_99_235/0.12)]",
+  next: "border-line-strong bg-surface text-subtle",
+};
 
 export default function ConfirmSignupForm() {
   const [email, setEmail] = useState("");
@@ -22,22 +42,23 @@ export default function ConfirmSignupForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
-
   const router = useRouter();
 
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEmail(e.target.value)
+    setEmail(e.target.value);
   }
 
   function handleCodeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setCode(e.target.value)
+    setCode(e.target.value);
   }
 
-  async function handleConfirm(e: React.FormEvent<HTMLFormElement>) {
+  async function handleConfirm(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
     // One confirmation at a time; the button also shows it's working.
-    if (submitting.current) return;
+    if (submitting.current) {
+      return;
+    }
     submitting.current = true;
     setError("");
     setLoading(true);
@@ -73,18 +94,20 @@ export default function ConfirmSignupForm() {
             {STEPS.map((step, index) => (
               <li key={step.title} className="flex items-start gap-4">
                 <span
-                  className={`grid size-10 shrink-0 place-items-center rounded-full border-2 font-display font-semibold ${
-                    step.state === "done"
-                      ? "border-brand bg-brand text-white"
-                      : step.state === "current"
-                        ? "border-brand bg-surface text-brand-strong shadow-[0_0_0_6px_rgb(37_99_235/0.12)]"
-                        : "border-line-strong bg-surface text-subtle"
-                  }`}
+                  className={`grid size-10 shrink-0 place-items-center rounded-full border-2 font-display font-semibold ${STEP_MARKER[step.state]}`}
                 >
-                  {step.state === "done" ? <CheckIcon className="size-4" /> : index + 1}
+                  {step.state === "done" ? (
+                    <CheckIcon className="size-4" />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
                 <span className="pt-1.5">
-                  <strong className={`block font-display font-semibold ${step.state === "next" ? "text-subtle" : "text-ink"}`}>{step.title}</strong>
+                  <strong
+                    className={`block font-display font-semibold ${step.state === "next" ? "text-subtle" : "text-ink"}`}
+                  >
+                    {step.title}
+                  </strong>
                   <small className="text-[15px] text-muted">{step.text}</small>
                 </span>
               </li>
@@ -93,7 +116,12 @@ export default function ConfirmSignupForm() {
         ),
       }}
     >
-      <form onSubmit={handleConfirm} className="flex flex-col gap-5">
+      <form
+        onSubmit={(event) => {
+          void handleConfirm(event);
+        }}
+        className="flex flex-col gap-5"
+      >
         <Field label="Email" htmlFor="email">
           <Input
             type="email"
@@ -106,7 +134,12 @@ export default function ConfirmSignupForm() {
           />
         </Field>
 
-        <Field label="Verification code" htmlFor="code" hint="Check your spam folder if it hasn’t arrived." hintId="code-hint">
+        <Field
+          label="Verification code"
+          htmlFor="code"
+          hint="Check your spam folder if it hasn’t arrived."
+          hintId="code-hint"
+        >
           <input
             type="text"
             id="code"
@@ -123,7 +156,11 @@ export default function ConfirmSignupForm() {
 
         {error && <FormAlert>{error}</FormAlert>}
 
-        <button type="submit" disabled={loading} className={buttonClass({ size: "lg", block: true })}>
+        <button
+          type="submit"
+          disabled={loading}
+          className={buttonClass({ size: "lg", block: true })}
+        >
           {loading && <Spinner />}
           {loading ? "Confirming…" : "Confirm email"}
         </button>
@@ -131,7 +168,15 @@ export default function ConfirmSignupForm() {
 
       <p className="mt-6 text-muted">
         Already confirmed?{" "}
-        <button type="button" className={LINK_CLASS} onClick={() => router.push(keepReturnTo("/login"))}>Log in</button>
+        <button
+          type="button"
+          className={LINK_CLASS}
+          onClick={() => {
+            router.push(keepReturnTo("/login"));
+          }}
+        >
+          Log in
+        </button>
       </p>
     </AuthShell>
   );

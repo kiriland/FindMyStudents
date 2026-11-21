@@ -2,19 +2,22 @@
 
 // Configures Amplify before this form signs in.
 import "@/lib/amplify";
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 import Input from "@/components/Input";
 import { buttonClass, LINK_CLASS } from "@/components/ui/button";
 import Field, { FormAlert, Spinner } from "@/components/ui/Field";
 import { signInWithEmail } from "@/features/auth/auth-client";
-import { currentReturnTo, keepReturnTo } from "@/features/auth/return-to-browser";
-import AuthChallenge, {
-  getChallengeToken,
-  type TurnstileInstance,
-} from "./AuthChallenge";
+import {
+  currentReturnTo,
+  keepReturnTo,
+} from "@/features/auth/return-to-browser";
+
+import type { TurnstileInstance } from "./AuthChallenge";
+
+import AuthChallenge, { getChallengeToken } from "./AuthChallenge";
 import AuthShell, { SampleCourseCard } from "./AuthShell";
 import PasswordInput from "./PasswordInput";
 import TurnstileNote from "./TurnstileNote";
@@ -22,20 +25,18 @@ import TurnstileNote from "./TurnstileNote";
 export default function LoginForm() {
   const challenge = useRef<TurnstileInstance>(null);
   const submitting = useRef(false);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const router = useRouter();
 
-  async function handleSignIn(
-    e: React.SubmitEvent<HTMLFormElement>
-  ) {
+  async function handleSignIn(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (submitting.current) return;
+    if (submitting.current) {
+      return;
+    }
 
     submitting.current = true;
     setError("");
@@ -49,7 +50,7 @@ export default function LoginForm() {
       const { isSignedIn, nextStep } = await signInWithEmail(
         email.trim(),
         password,
-        token
+        token,
       );
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
@@ -60,11 +61,11 @@ export default function LoginForm() {
       } else {
         setError("Additional sign-in verification is required.");
       }
-    } catch (err) {
+    } catch (error_) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again."
+        error_ instanceof Error
+          ? error_.message
+          : "Something went wrong. Please try again.",
       );
     } finally {
       if (token) {
@@ -85,20 +86,40 @@ export default function LoginForm() {
         text: "Courses, Help Offers and the students who can help, all in one place.",
         visual: (
           <div className="relative h-[300px]">
-            <SampleCourseCard code="STA 2000" title="Business Statistics I" className="absolute top-0 left-[4%] -rotate-3" />
-            <SampleCourseCard code="ACC 2101" title="Principles of Accounting" className="absolute top-[100px] left-[16%] rotate-2" />
-            <SampleCourseCard code="CIS 3400" title="Database Management Systems" className="absolute top-[200px] left-[6%] -rotate-1" />
+            <SampleCourseCard
+              code="STA 2000"
+              title="Business Statistics I"
+              className="absolute top-0 left-[4%] -rotate-3"
+            />
+            <SampleCourseCard
+              code="ACC 2101"
+              title="Principles of Accounting"
+              className="absolute top-[100px] left-[16%] rotate-2"
+            />
+            <SampleCourseCard
+              code="CIS 3400"
+              title="Database Management Systems"
+              className="absolute top-[200px] left-[6%] -rotate-1"
+            />
           </div>
         ),
       }}
     >
-      <form onSubmit={handleSignIn} className="flex flex-col gap-5" aria-describedby={error ? "login-error" : undefined}>
+      <form
+        onSubmit={(event) => {
+          void handleSignIn(event);
+        }}
+        className="flex flex-col gap-5"
+        aria-describedby={error ? "login-error" : undefined}
+      >
         <Field label="Email" htmlFor="login-email">
           <Input
             id="login-email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
             placeholder="you@example.com"
             autoComplete="email"
             required
@@ -109,7 +130,9 @@ export default function LoginForm() {
           <PasswordInput
             id="login-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
             autoComplete="current-password"
             required
           />
@@ -121,7 +144,11 @@ export default function LoginForm() {
 
         {error && <FormAlert id="login-error">{error}</FormAlert>}
 
-        <button type="submit" disabled={loading} className={buttonClass({ size: "lg", block: true })}>
+        <button
+          type="submit"
+          disabled={loading}
+          className={buttonClass({ size: "lg", block: true })}
+        >
           {loading && <Spinner />}
           {loading ? "Logging in…" : "Log in"}
         </button>
@@ -129,7 +156,9 @@ export default function LoginForm() {
 
       <p className="mt-6 text-muted">
         New to FindMyStudents?{" "}
-        <Link href="/signup" className={LINK_CLASS}>Create an account</Link>
+        <Link href="/signup" className={LINK_CLASS}>
+          Create an account
+        </Link>
       </p>
     </AuthShell>
   );
