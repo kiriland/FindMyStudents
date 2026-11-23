@@ -6,3 +6,7 @@ app_execution_role_arn = "arn:aws:iam::123456789012:role/findmystudents-web"
 
 # Origins whose pages may upload pictures to the bucket.
 # app_origins = ["https://findmystudents.com", "https://www.findmystudents.com", "http://localhost:3000"]
+
+# Sender of verification emails, sent through SES. The domain must be a verified SES identity.
+# email_from_address = "no-reply@findmystudents.com"
+# email_from_name    = "FindMyStudents"

@@ -4,6 +4,9 @@ Terraform for student Profiles:
 
 - a new Cognito user pool. Email is the username and must be verified. First
   name (`given_name`) and last name (`family_name`) are required.
+- the pool's email settings, which send verification and account recovery
+  emails through SES as `FindMyStudents <no-reply@findmystudents.com>`
+  instead of Cognito's shared sender, which allows only 50 emails a day
 - the public web app client that Amplify uses in the browser
 - the `findmystudents-profiles` DynamoDB table. Each student's partition
   (`STUDENT#<id>`) holds their Profile, one item per Help Offer and one
@@ -64,6 +67,14 @@ names or other settings:
 cp infrastructure/profiles/terraform.tfvars.example \
    infrastructure/profiles/terraform.tfvars
 ```
+
+The `findmystudents.com` domain must already be a verified SES identity in
+`us-east-1`, with DKIM set up and the account out of the SES sandbox. Terraform
+only reads the identity, and the plan fails if it isn't verified for sending.
+Cognito sends through it with its `AWSServiceRoleForAmazonCognitoIdpEmailService`
+service-linked role, which AWS creates on the first apply if it's missing. To
+send from another address, set `email_from_address` and `email_from_name`; the
+address's domain must be a verified identity too.
 
 `app_execution_role_arn` is required: set it to the value of the
 `AWS_LAMBDA_EXECUTION_ROLE_ARN` secret. If the app runs on origins other than

@@ -1,3 +1,16 @@
+# The SES domain identity is verified outside Terraform (DKIM records live with
+# the domain's DNS). Cognito sends through it with its email service-linked role.
+data "aws_sesv2_email_identity" "sender" {
+  email_identity = local.email_from_domain
+
+  lifecycle {
+    postcondition {
+      condition     = self.verified_for_sending_status
+      error_message = "The SES identity ${local.email_from_domain} is not verified for sending."
+    }
+  }
+}
+
 # Cognito cannot add required attributes to an existing pool, so students sign up
 # into this new pool. Existing accounts in the old pool are not migrated.
 resource "aws_cognito_user_pool" "students" {
@@ -30,8 +43,12 @@ resource "aws_cognito_user_pool" "students" {
     temporary_password_validity_days = 7
   }
 
+  # Verification and recovery emails go out through SES from our own domain
+  # instead of Cognito's shared sender, which is capped at 50 emails a day.
   email_configuration {
-    email_sending_account = "COGNITO_DEFAULT"
+    email_sending_account = "DEVELOPER"
+    source_arn            = data.aws_sesv2_email_identity.sender.arn
+    from_email_address    = "${var.email_from_name} <${var.email_from_address}>"
   }
 
   verification_message_template {
@@ -150,6 +167,7 @@ resource "aws_dynamodb_table" "profiles" {
 data "aws_caller_identity" "current" {}
 
 locals {
+  email_from_domain = split("@", var.email_from_address)[1]
   # Bucket names are global, so the account ID keeps this one unique.
   pictures_bucket_name = "${var.name}-pictures-${data.aws_caller_identity.current.account_id}"
   # A role ARN may include a path; the policy needs only the role's name.
