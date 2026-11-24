@@ -67,11 +67,12 @@ export function withQuery(path: string, params: string) {
 }
 
 /** One page of matching Courses from the courses API. For the browser; the server calls `findCourses`. */
+/** The one way the browser searches the catalogue: a CourseQuery sent to /api/courses. */
 export async function fetchCoursePage(
-  params: string,
+  query: CourseQuery,
   signal: AbortSignal,
 ): Promise<CoursePage> {
-  const response = await fetch(withQuery("/api/courses", params), {
+  const response = await fetch(withQuery("/api/courses", queryString(query)), {
     signal,
     cache: "no-store",
   });
