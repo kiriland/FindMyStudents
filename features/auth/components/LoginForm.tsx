@@ -1,70 +1,165 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "aws-amplify/auth";
+// Configures Amplify before this form signs in.
+import "@/lib/amplify";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
+import { useRef, useState } from "react";
+
 import Input from "@/components/Input";
+import { buttonClass, LINK_CLASS } from "@/components/ui/button";
+import Field, { FormAlert, Spinner } from "@/components/ui/Field";
+import { signInWithEmail } from "@/features/auth/auth-client";
+import {
+  currentReturnTo,
+  keepReturnTo,
+} from "@/features/auth/return-to-browser";
+
+import type { TurnstileInstance } from "./AuthChallenge";
+
+import AuthChallenge, { getChallengeToken } from "./AuthChallenge";
+import AuthShell, { SampleCourseCard } from "./AuthShell";
+import PasswordInput from "./PasswordInput";
+import TurnstileNote from "./TurnstileNote";
 
 export default function LoginForm() {
+  const challenge = useRef<TurnstileInstance>(null);
+  const submitting = useRef(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEmail(e.target.value)
-  }
-
-  function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setPassword(e.target.value)
-  }
 
   async function handleSignIn(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    if (submitting.current) {
+      return;
+    }
+
+    submitting.current = true;
+    setError("");
+    setLoading(true);
+
+    let token: string | undefined;
+
     try {
-      const { isSignedIn, nextStep } = await signIn({
-        username: email,
-        password: password,
-      });
+      token = getChallengeToken(challenge.current);
+
+      const { isSignedIn, nextStep } = await signInWithEmail(
+        email.trim(),
+        password,
+        token,
+      );
 
       if (isSignedIn && nextStep.signInStep === "DONE") {
-        router.push("/");
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+        router.push(currentReturnTo() ?? "/");
+        router.refresh();
+      } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
+        router.push(keepReturnTo("/confirm-signup"));
       } else {
-        setError("Something went wrong. Please try again.");
+        setError("Additional sign-in verification is required.");
       }
+    } catch (error_) {
+      setError(
+        error_ instanceof Error
+          ? error_.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      if (token) {
+        challenge.current?.reset();
+      }
+
+      submitting.current = false;
+      setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSignIn} className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-zinc-300 p-6 dark:border-zinc-700">
-      <h1 className="text-center text-3xl font-bold">Log In</h1>
-      <label htmlFor="email" className="font-semibold">Email</label>
-      <Input
-        type="email"
-        id="email"
-        value={email}
-        onChange={handleEmailChange}
-        required
-      />
+    <AuthShell
+      title="Log in"
+      subtitle="Welcome back. Log in to see who offers help with your courses and to manage your profile."
+      aside={{
+        heading: "Pick up where you left off.",
+        text: "Courses, Help Offers and the students who can help, all in one place.",
+        visual: (
+          <div className="relative h-[300px]">
+            <SampleCourseCard
+              code="STA 2000"
+              title="Business Statistics I"
+              className="absolute top-0 left-[4%] -rotate-3"
+            />
+            <SampleCourseCard
+              code="ACC 2101"
+              title="Principles of Accounting"
+              className="absolute top-[100px] left-[16%] rotate-2"
+            />
+            <SampleCourseCard
+              code="CIS 3400"
+              title="Database Management Systems"
+              className="absolute top-[200px] left-[6%] -rotate-1"
+            />
+          </div>
+        ),
+      }}
+    >
+      <form
+        onSubmit={(event) => {
+          void handleSignIn(event);
+        }}
+        className="flex flex-col gap-5"
+        aria-describedby={error ? "login-error" : undefined}
+      >
+        <Field label="Email" htmlFor="login-email">
+          <Input
+            id="login-email"
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+          />
+        </Field>
 
-      <label htmlFor="password" className="font-semibold">Password</label>
-      <Input
-        type="password"
-        id="password"
-        value={password}
-        onChange={handlePasswordChange}
-        required
-      />
+        <Field label="Password" htmlFor="login-password">
+          <PasswordInput
+            id="login-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+            }}
+            autoComplete="current-password"
+            required
+          />
+        </Field>
 
-      <Button type="submit">Log In</Button>
-      {error && <p>{error}</p>}
-    </form>
-  )
+        <TurnstileNote>
+          <AuthChallenge ref={challenge} action="login" />
+        </TurnstileNote>
+
+        {error && <FormAlert id="login-error">{error}</FormAlert>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={buttonClass({ size: "lg", block: true })}
+        >
+          {loading && <Spinner />}
+          {loading ? "Logging in…" : "Log in"}
+        </button>
+      </form>
+
+      <p className="mt-6 text-muted">
+        New to FindMyStudents?{" "}
+        <Link href="/signup" className={LINK_CLASS}>
+          Create an account
+        </Link>
+      </p>
+    </AuthShell>
+  );
 }

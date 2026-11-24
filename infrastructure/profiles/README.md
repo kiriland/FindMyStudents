@@ -1,0 +1,196 @@
+# Profiles infrastructure
+
+Terraform for student Profiles:
+
+- a new Cognito user pool. Email is the username and must be verified. First
+  name (`given_name`) and last name (`family_name`) are required.
+- the pool's email settings, which send verification and account recovery
+  emails through SES as `FindMyStudents <no-reply@findmystudents.com>`
+  instead of Cognito's shared sender, which allows only 50 emails a day
+- the public web app client that Amplify uses in the browser
+- Notifications: a stream on the table and the `<name>-notifications` Lambda,
+  with its own role, log group and failures queue. See
+  [Notifications](#notifications).
+- the `findmystudents-profiles` DynamoDB table. Each student's partition
+  (`STUDENT#<id>`) holds their Profile, one item per Help Offer and one
+  `RELATIONSHIP#<other id>` item per Connection Request or Connection they're
+  part of. Each pair of students also has one `PAIR#<id>#<id>` item, the IDs in
+  sorted order, which holds the pair's current state. A deleted student's
+  partition keeps one `DELETED` item, holding only its key, so their Profile is
+  never created again
+- the table's `course-volunteers` index, which lists a Course's Volunteers
+  newest Help Offer first. Only Help Offer items are in it.
+- a TTL on `expiresAt`, which deletes declined Connection Requests once their
+  7-day cooldown is over
+- the private `<name>-pictures-<account id>` bucket for profile pictures, with
+  public access blocked, CORS for uploads from the app's origins, and a
+  lifecycle rule that deletes unconfirmed uploads in `quarantine/` after 1 day
+- an inline policy, `<name>-pictures`, on the app's Web Function execution role,
+  giving it access to `quarantine/` and `pictures/` in that bucket, and to
+  Rekognition's `DetectModerationLabels`
+
+The browser uploads a picture into `quarantine/` with a presigned POST that only
+accepts JPEG or PNG of up to 5 MB. The app then checks the file's real type,
+strips its metadata with `sharp`, moderates the stripped image with Rekognition
+and publishes it under `pictures/`, deleting the picture it replaces. A blocked
+upload is deleted and the current picture stays. Pictures are shown through
+signed links that expire after at most 15 minutes, and only signed-in students
+are given one.
+
+Cognito can't add required attributes to an existing pool, which is why the pool
+is new. Accounts in the old pool aren't migrated, so students sign up again.
+
+The app saves a student's name in their Profile the first time it sees them on
+the server, and doesn't update it later. Changing the name in Cognito doesn't
+change the Profile.
+
+## Picture moderation
+
+The app calls `DetectModerationLabels` on every upload, in the same request that
+publishes it. A picture is blocked when any label has a confidence of at least
+80 and belongs to one of these top-level categories: Explicit, Non-Explicit
+Nudity of Intimate parts and Kissing, Violence, Visually Disturbing, Hate
+Symbols, Rude Gestures, Drugs & Tobacco, and Alcohol. "Swimwear or Underwear"
+and "Gambling" are allowed. There is no face check and no human review.
+
+The student sees one generic message whichever label matched. Each block is
+logged with the student's ID and the names of the matching labels, never the
+image, so the threshold and categories can be tuned from the logs.
+
+The threshold and categories are constants in
+`features/profiles/moderation.ts`; changing them needs a redeploy.
+
+## Notifications
+
+A Notification is an email about a Connection Request. One goes to a
+Volunteer when a request is sent to them, and one goes to the sender when
+their request is accepted or declined. Withdrawn requests and removed
+Connections send none. Students turn all of them off with **Email me about
+Connection Requests** in their Profile's edit mode. It's stored as
+`emailNotifications = false` on the Profile item; a missing value means on.
+
+Every change to a pair item (`PAIR#<id>#<id>`) goes through the table's stream
+to the Lambda, normally within a few seconds. The stream's filter drops every
+other item. For each event the Lambda:
+
+1. re-reads the pair, and skips the event if the request has since been
+   withdrawn or answered differently
+2. reads both Profiles, and skips the event if either is gone or the reader has
+   turned Notifications off
+3. looks up the reader's verified email in Cognito by their ID
+4. writes a `NOTIFICATION#<request id>` marker for the event, and skips it if
+   the marker already exists, so a retry never sends it twice. Markers expire
+   after 7 days through the table's TTL.
+5. sends a plain-text email through SES, from `email_from_address`. If sending
+   fails, it deletes the marker so the retry can send it.
+
+A record that fails is retried for up to 5 minutes, then its place in the
+stream goes to the `<name>-notifications-failures` queue. The queue holds
+only where the record was, not the record, and nothing replays it or alarms
+on it. Check it, and the Lambda's logs, when a student reports a missing
+email.
+
+The code is in `services/notifications`. Build it before every plan or
+apply, because Terraform zips the bundle:
+
+```bash
+npm ci --prefix services/notifications
+npm run build --prefix services/notifications
+```
+
+## Prerequisites
+
+Terraform 1.6+, AWS CLI v2, and authenticated AWS access. Everything is
+created in `us-east-1`, the region the app is hardcoded to. To change resource
+names or other settings:
+
+```bash
+cp infrastructure/profiles/terraform.tfvars.example \
+   infrastructure/profiles/terraform.tfvars
+```
+
+The `findmystudents.com` domain must already be a verified SES identity in
+`us-east-1`, with DKIM set up and the account out of the SES sandbox. Terraform
+only reads the identity, and the plan fails if it isn't verified for sending.
+Cognito sends through it with its `AWSServiceRoleForAmazonCognitoIdpEmailService`
+service-linked role, which AWS creates on the first apply if it's missing. To
+send from another address, set `email_from_address` and `email_from_name`; the
+address's domain must be a verified identity too.
+
+`app_execution_role_arn` is required: set it to the value of the
+`AWS_LAMBDA_EXECUTION_ROLE_ARN` secret. If the app runs on origins other than
+`findmystudents.com`, `www.findmystudents.com` and `localhost:3000`, set
+`app_origins` too, or uploads from them fail CORS.
+
+## Manual steps
+
+Run these once, in order.
+
+### 1. Apply the Terraform
+
+From the repository root, build the Notifications Lambda first:
+
+```bash
+npm ci --prefix services/notifications
+npm run build --prefix services/notifications
+terraform -chdir=infrastructure/profiles init -input=false
+terraform -chdir=infrastructure/profiles plan
+terraform -chdir=infrastructure/profiles apply
+terraform -chdir=infrastructure/profiles output
+```
+
+The plan creates the user pool, the app client, the table with its index, the
+picture bucket and its settings, and the app role's policies for the table,
+the bucket and Rekognition. On a table that already exists, the plan only adds the index;
+DynamoDB fills it from the existing Help Offers in the background.
+The pool and the table have deletion protection turned on.
+
+If you added the table policy to the app role by hand before Terraform managed
+it, delete that inline policy once the apply succeeds.
+
+### 2. Switch the Cognito GitHub vars
+
+In **Settings → Secrets and variables → Actions → Variables**, set:
+
+| Variable | Terraform output |
+| --- | --- |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | `user_pool_id` |
+| `NEXT_PUBLIC_COGNITO_CLIENT_ID` | `user_pool_client_id` |
+| `PROFILES_TABLE_NAME` | `profiles_table_name` |
+| `PROFILE_PICTURES_BUCKET_NAME` | `profile_pictures_bucket_name` |
+
+For local development, put the same values in `.env.local`. Then redeploy by
+running the deploy workflow from the Actions tab, or by pushing to `main`.
+`NEXT_PUBLIC_*` values are embedded at build time, so a redeploy is required.
+
+Check that signup, confirm-signup, login, logout and `/students/<your id>` work
+against the new pool, and that you can upload, replace and remove a picture.
+Try a few ordinary photos, including a swimwear photo, which should be
+accepted, and sample images from the blocked categories, which should be
+refused while your current picture stays.
+
+For local development, your AWS credentials need the same table, bucket and
+Rekognition access as the app's role.
+
+### 3. Retire the old pool
+
+Once the new pool works in production, delete the old one. Its accounts can't
+sign in to the app any more. In the Cognito console, open the old pool, turn off
+deletion protection if it's on, and delete it, or run:
+
+```bash
+aws cognito-idp delete-user-pool --region us-east-1 --user-pool-id <old pool id>
+```
+
+Deleting a pool can't be undone.
+
+## Static checks
+
+```bash
+terraform -chdir=infrastructure/profiles fmt -check
+terraform -chdir=infrastructure/profiles validate
+```
+
+Keep the ignored local Terraform state files. Configure shared remote state
+before deploying collaboratively. Never delete state and redeploy the same
+resource names.

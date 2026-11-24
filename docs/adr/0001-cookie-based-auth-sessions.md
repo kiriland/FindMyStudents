@@ -1,0 +1,3 @@
+# Cookie-based auth sessions via the Amplify Next.js adapter
+
+Auth sessions move from browser-only Amplify storage to cookies read on the server through `@aws-amplify/adapter-nextjs`. Profiles are visible to signed-in students only, and that rule has to hold in server-rendered HTML; saving a profile, uploading a picture, and managing Help Offers also need the server to know who is acting. Keeping sessions in the browser and sending a bearer token to API routes was rejected: pages could then be protected only on the client, so a signed-out visitor would still receive profile content in the HTML.
