@@ -70,7 +70,7 @@ export default function ResetPasswordForm() {
   return (
     <AuthShell
       title="Reset password"
-      subtitle="Welcome back. Log in to see who offers help with your courses and to manage your profile."
+      subtitle="Enter your email to get a confirmation code to reset password."
       aside={{
         heading: "Pick up where you left off.",
         text: "Courses, Help Offers and the students who can help, all in one place.",
