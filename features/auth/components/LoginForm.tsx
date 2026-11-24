@@ -153,12 +153,17 @@ export default function LoginForm() {
           {loading ? "Logging in…" : "Log in"}
         </button>
       </form>
-
+      
+      <br />
+      <Link href="/reset-password" className={LINK_CLASS}>
+        Forgot Password
+      </Link>
       <p className="mt-6 text-muted">
         New to FindMyStudents?{" "}
         <Link href="/signup" className={LINK_CLASS}>
           Create an account
         </Link>
+        <br />
       </p>
     </AuthShell>
   );
