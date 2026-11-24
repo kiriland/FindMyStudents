@@ -156,6 +156,10 @@ resource "aws_dynamodb_table" "profiles" {
     enabled = true
   }
 
+  # Read by the Notifications Lambda (notifications.tf).
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
+
   # Declined Connection Requests carry expiresAt, the end of their cooldown, so
   # they are deleted once it is over.
   ttl {

@@ -21,3 +21,8 @@ output "profile_pictures_bucket_name" {
   description = "Value for the PROFILE_PICTURES_BUCKET_NAME GitHub variable and .env.local."
   value       = aws_s3_bucket.pictures.bucket
 }
+
+output "notification_failures_queue_url" {
+  description = "Connection Request events whose Notification could not be sent."
+  value       = aws_sqs_queue.notification_failures.url
+}

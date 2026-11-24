@@ -40,3 +40,13 @@ variable "email_from_name" {
   type        = string
   default     = "FindMyStudents"
 }
+
+variable "app_url" {
+  description = "Base URL that Notification emails link to."
+  type        = string
+  default     = "https://findmystudents.com"
+  validation {
+    condition     = can(regex("^https?://[^/]+$", var.app_url))
+    error_message = "Use an origin with no path or trailing slash, like https://findmystudents.com."
+  }
+}

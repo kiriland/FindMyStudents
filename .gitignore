@@ -61,3 +61,8 @@ next-env.d.ts
 /infrastructure/profiles/terraform.tfvars
 /infrastructure/profiles/*.auto.tfvars
 /infrastructure/profiles/crash.log
+/infrastructure/profiles/notifications.zip
+
+# Notifications Lambda dependencies and bundle
+/services/notifications/node_modules/
+/services/notifications/dist/

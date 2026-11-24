@@ -67,6 +67,7 @@ export default async function ProfileContent({
           pictureUrl={profile.pictureUrl}
           initials={profile.initials}
           contacts={profile.contacts}
+          emailNotifications={profile.emailNotifications}
           identity={identity}
           contactDetails={
             <ContactDetails contacts={profile.contacts} isOwner />

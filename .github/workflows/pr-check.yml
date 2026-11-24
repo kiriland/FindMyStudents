@@ -23,13 +23,17 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             services/course-importer/package-lock.json
+            services/notifications/package-lock.json
 
       - name: Install Dependencies
         run: npm ci
 
-      # Type-aware lint resolves the importer's imports from its own node_modules.
+      # Type-aware lint resolves each service's imports from its own node_modules.
       - name: Install Course Importer Dependencies
         run: npm ci --prefix services/course-importer
+
+      - name: Install Notifications Dependencies
+        run: npm ci --prefix services/notifications
 
       - name: Generate Next.js Types
         run: npx next typegen
@@ -39,6 +43,9 @@ jobs:
 
       - name: Course Importer Type Check
         run: npm run typecheck --prefix services/course-importer
+
+      - name: Notifications Type Check
+        run: npm run typecheck --prefix services/notifications
 
       - name: Lint
         run: npm run lint

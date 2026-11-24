@@ -73,6 +73,8 @@ export function readProfile(item: Record<string, unknown> | undefined) {
     familyName,
     bio: text(item.bio),
     pictureKey: isPictureKey(item.pictureKey) ? item.pictureKey : null,
+    // Stored only when turned off, so Profiles from before the setting have it on.
+    emailNotifications: item.emailNotifications !== false,
     contacts: Object.fromEntries(
       CONTACT_FIELDS.flatMap((field) =>
         text(item[field]) ? [[field, item[field]]] : [],
