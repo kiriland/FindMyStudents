@@ -3,6 +3,12 @@ import {
   getCurrentUser,
   signIn,
   signUp,
+  resetPassword,
+  ResetPasswordOutput,
+  confirmResetPassword,
+  ConfirmResetPasswordInput,
+  updatePassword,
+  UpdatePasswordInput,
 } from "aws-amplify/auth";
 
 async function verifyChallenge(token: string, action: "login" | "signup") {
@@ -67,6 +73,52 @@ export async function confirmEmailSignup(
     username: email,
     confirmationCode,
   });
+}
+
+export async function handleResetPassword(username: string) {
+  try {
+    const output = await resetPassword({ username });
+    handleResetPasswordNextSteps(output);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export function handleResetPasswordNextSteps(output: ResetPasswordOutput) {
+  const { nextStep } = output;
+  if (nextStep.resetPasswordStep === 'CONFIRM_RESET_PASSWORD_WITH_CODE') {
+    const codeDeliveryDetails = nextStep.codeDeliveryDetails;
+    console.log(`Confirmation code was sent to ${codeDeliveryDetails.deliveryMedium}`);
+  }
+  else if (nextStep.resetPasswordStep === 'DONE') {
+    console.log('Successfully reset password.');
+  }
+  else {
+    console.log('Error: Please try again.');
+  }
+}
+
+export async function handleConfirmResetPassword({
+  username,
+  confirmationCode,
+  newPassword
+}: ConfirmResetPasswordInput) {
+  try {
+    await confirmResetPassword({ username, confirmationCode, newPassword });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function handleUpdatePassword({
+  oldPassword,
+  newPassword
+}: UpdatePasswordInput) {
+  try {
+    await updatePassword({ oldPassword, newPassword });
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 export { getCurrentUser };
