@@ -19,7 +19,7 @@ export default function AuthChallenge({
   action,
   ref,
 }: {
-  action: "login" | "signup";
+  action: "login" | "signup" | "reset";
   ref: Ref<TurnstileInstance>;
 }) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
