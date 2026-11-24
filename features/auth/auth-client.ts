@@ -75,7 +75,7 @@ export async function confirmEmailSignup(
   });
 }
 
-export async function handleResetPassword(username: string) {
+export async function handleResetPassword_Amplify(username: string) {
   try {
     const output = await resetPassword({ username });
     handleResetPasswordNextSteps(output);
@@ -107,17 +107,6 @@ export async function handleConfirmResetPassword({
     await confirmResetPassword({ username, confirmationCode, newPassword });
   } catch (error) {
     console.log(error);
-  }
-}
-
-export async function handleUpdatePassword({
-  oldPassword,
-  newPassword
-}: UpdatePasswordInput) {
-  try {
-    await updatePassword({ oldPassword, newPassword });
-  } catch (err) {
-    console.log(err);
   }
 }
 
