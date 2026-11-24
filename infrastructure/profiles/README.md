@@ -4,7 +4,13 @@ Terraform for student Profiles:
 
 - a new Cognito user pool. Email is the username and must be verified. First
   name (`given_name`) and last name (`family_name`) are required.
+- the pool's email settings, which send verification and account recovery
+  emails through SES as `FindMyStudents <no-reply@findmystudents.com>`
+  instead of Cognito's shared sender, which allows only 50 emails a day
 - the public web app client that Amplify uses in the browser
+- Notifications: a stream on the table and the `<name>-notifications` Lambda,
+  with its own role, log group and failures queue. See
+  [Notifications](#notifications).
 - the `findmystudents-profiles` DynamoDB table. Each student's partition
   (`STUDENT#<id>`) holds their Profile, one item per Help Offer and one
   `RELATIONSHIP#<other id>` item per Connection Request or Connection they're
@@ -54,6 +60,44 @@ image, so the threshold and categories can be tuned from the logs.
 The threshold and categories are constants in
 `features/profiles/moderation.ts`; changing them needs a redeploy.
 
+## Notifications
+
+A Notification is an email about a Connection Request. One goes to a
+Volunteer when a request is sent to them, and one goes to the sender when
+their request is accepted or declined. Withdrawn requests and removed
+Connections send none. Students turn all of them off with **Email me about
+Connection Requests** in their Profile's edit mode. It's stored as
+`emailNotifications = false` on the Profile item; a missing value means on.
+
+Every change to a pair item (`PAIR#<id>#<id>`) goes through the table's stream
+to the Lambda, normally within a few seconds. The stream's filter drops every
+other item. For each event the Lambda:
+
+1. re-reads the pair, and skips the event if the request has since been
+   withdrawn or answered differently
+2. reads both Profiles, and skips the event if either is gone or the reader has
+   turned Notifications off
+3. looks up the reader's verified email in Cognito by their ID
+4. writes a `NOTIFICATION#<request id>` marker for the event, and skips it if
+   the marker already exists, so a retry never sends it twice. Markers expire
+   after 7 days through the table's TTL.
+5. sends a plain-text email through SES, from `email_from_address`. If sending
+   fails, it deletes the marker so the retry can send it.
+
+A record that fails is retried for up to 5 minutes, then its place in the
+stream goes to the `<name>-notifications-failures` queue. The queue holds
+only where the record was, not the record, and nothing replays it or alarms
+on it. Check it, and the Lambda's logs, when a student reports a missing
+email.
+
+The code is in `services/notifications`. Build it before every plan or
+apply, because Terraform zips the bundle:
+
+```bash
+npm ci --prefix services/notifications
+npm run build --prefix services/notifications
+```
+
 ## Prerequisites
 
 Terraform 1.6+, AWS CLI v2, and authenticated AWS access. Everything is
@@ -64,6 +108,14 @@ names or other settings:
 cp infrastructure/profiles/terraform.tfvars.example \
    infrastructure/profiles/terraform.tfvars
 ```
+
+The `findmystudents.com` domain must already be a verified SES identity in
+`us-east-1`, with DKIM set up and the account out of the SES sandbox. Terraform
+only reads the identity, and the plan fails if it isn't verified for sending.
+Cognito sends through it with its `AWSServiceRoleForAmazonCognitoIdpEmailService`
+service-linked role, which AWS creates on the first apply if it's missing. To
+send from another address, set `email_from_address` and `email_from_name`; the
+address's domain must be a verified identity too.
 
 `app_execution_role_arn` is required: set it to the value of the
 `AWS_LAMBDA_EXECUTION_ROLE_ARN` secret. If the app runs on origins other than
@@ -76,9 +128,11 @@ Run these once, in order.
 
 ### 1. Apply the Terraform
 
-From the repository root:
+From the repository root, build the Notifications Lambda first:
 
 ```bash
+npm ci --prefix services/notifications
+npm run build --prefix services/notifications
 terraform -chdir=infrastructure/profiles init -input=false
 terraform -chdir=infrastructure/profiles plan
 terraform -chdir=infrastructure/profiles apply

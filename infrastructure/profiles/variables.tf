@@ -24,3 +24,29 @@ variable "app_origins" {
   type        = list(string)
   default     = ["https://findmystudents.com", "https://www.findmystudents.com", "http://localhost:3000"]
 }
+
+variable "email_from_address" {
+  description = "Sender of Cognito's verification and recovery emails. Its domain must be a verified SES identity in us-east-1."
+  type        = string
+  default     = "no-reply@findmystudents.com"
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.email_from_address))
+    error_message = "Use an email address, like no-reply@findmystudents.com."
+  }
+}
+
+variable "email_from_name" {
+  description = "Display name shown with email_from_address."
+  type        = string
+  default     = "FindMyStudents"
+}
+
+variable "app_url" {
+  description = "Base URL that Notification emails link to."
+  type        = string
+  default     = "https://findmystudents.com"
+  validation {
+    condition     = can(regex("^https?://[^/]+$", var.app_url))
+    error_message = "Use an origin with no path or trailing slash, like https://findmystudents.com."
+  }
+}

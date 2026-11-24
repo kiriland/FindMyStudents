@@ -79,7 +79,12 @@ export type ProfileView = {
   helpOffers: HelpOfferView[];
 } & (
   | { isOwner: false; contacts: Contacts | null }
-  | { isOwner: true; contacts: Contacts }
+  | {
+      isOwner: true;
+      contacts: Contacts;
+      /** Whether the owner gets Notifications. */
+      emailNotifications: boolean;
+    }
 );
 
 /** A Help Offer as shown on a Profile: the Course it is for. */
@@ -111,11 +116,14 @@ export interface CourseVolunteers {
 }
 
 /** The fields of the edit-mode form. */
-export type ProfileEdit = { bio: string } & Record<ContactField, string>;
+export type ProfileEdit = { bio: string } & Record<ContactField, string> & {
+    emailNotifications: boolean;
+  };
 const EDIT_FIELDS = ["bio", ...CONTACT_FIELDS] as const;
+type EditField = (typeof EDIT_FIELDS)[number];
 
 export type ProfileEditOutcome = Outcome<{
-  fieldErrors: Partial<Record<keyof ProfileEdit, string>>;
+  fieldErrors: Partial<Record<EditField, string>>;
 }>;
 
 /** Where and how the browser uploads a picture, then which upload to confirm. */
@@ -308,6 +316,7 @@ export async function getProfile(
     "courseTitle",
     "createdAt",
     ...(seesContacts ? CONTACT_FIELDS : []),
+    ...(isOwner ? ["emailNotifications"] : []),
   ];
   // The Profile and its Help Offers share a partition, so one query reads them all.
   const { Items: items = [] } = await db.send(
@@ -341,21 +350,26 @@ export async function getProfile(
     }));
   const shown = { id: studentId, ...(await shownProfile(profile)), helpOffers };
   return isOwner
-    ? { ...shown, isOwner, contacts: profile.contacts }
+    ? {
+        ...shown,
+        isOwner,
+        contacts: profile.contacts,
+        emailNotifications: profile.emailNotifications,
+      }
     : { ...shown, isOwner, contacts: seesContacts ? profile.contacts : null };
 }
 
 /**
- * Replaces the Viewer's own bio and contact details. An empty field removes
- * it. Every field is checked here, so no caller can store one that breaks the
+ * Replaces the Viewer's own bio, contact details and Notifications setting.
+ * An empty field removes it. Every field is checked here, so no caller can store one that breaks the
  * rules, and nothing is saved unless all of them pass.
  */
 export async function updateProfile(
   viewer: Viewer,
   edit: ProfileEdit,
 ): Promise<ProfileEditOutcome> {
-  const values: Partial<Record<keyof ProfileEdit, string>> = {};
-  const fieldErrors: Partial<Record<keyof ProfileEdit, string>> = {};
+  const values: Partial<Record<EditField, string>> = {};
+  const fieldErrors: Partial<Record<EditField, string>> = {};
   const bio = parseBio(edit.bio);
   if (bio.ok) {
     values.bio = bio.value;
@@ -375,32 +389,39 @@ export async function updateProfile(
   }
 
   const fields = EDIT_FIELDS.filter((field) => field in values);
-  const set = fields.filter((field) => values[field]);
-  const remove = fields.filter((field) => !values[field]);
+  const set: string[] = [];
+  const remove: string[] = [];
+  const names: Record<string, string> = {};
+  const attributeValues: Record<string, unknown> = {};
+  for (const field of fields) {
+    names[`#${field}`] = field;
+    if (values[field]) {
+      set.push(`#${field} = :${field}`);
+      attributeValues[`:${field}`] = values[field];
+    } else {
+      remove.push(`#${field}`);
+    }
+  }
+  // Stored only when turned off: a missing setting means on.
+  names["#emailNotifications"] = "emailNotifications";
+  if (edit.emailNotifications) {
+    remove.push("#emailNotifications");
+  } else {
+    set.push("#emailNotifications = :emailNotifications");
+    attributeValues[":emailNotifications"] = false;
+  }
   await db.send(
     new UpdateCommand({
       TableName: tableName(),
       Key: profileKey(viewer.studentId),
       UpdateExpression: [
-        set.length > 0
-          ? `SET ${set.map((field) => `#${field} = :${field}`).join(", ")}`
-          : "",
-        remove.length > 0
-          ? `REMOVE ${remove.map((field) => `#${field}`).join(", ")}`
-          : "",
+        set.length > 0 ? `SET ${set.join(", ")}` : "",
+        remove.length > 0 ? `REMOVE ${remove.join(", ")}` : "",
       ]
         .filter(Boolean)
         .join(" "),
-      ExpressionAttributeNames: Object.fromEntries(
-        fields.map((field) => [`#${field}`, field]),
-      ),
-      ...(set.length > 0
-        ? {
-            ExpressionAttributeValues: Object.fromEntries(
-              set.map((field) => [`:${field}`, values[field]]),
-            ),
-          }
-        : {}),
+      ExpressionAttributeNames: names,
+      ...(set.length > 0 ? { ExpressionAttributeValues: attributeValues } : {}),
       // An update never creates a Profile: it would have no name.
       ConditionExpression: "attribute_exists(pk)",
     }),

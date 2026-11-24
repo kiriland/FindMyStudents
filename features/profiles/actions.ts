@@ -82,6 +82,7 @@ export async function saveProfile(
     phone: text(formData.get("phone")),
     discord: text(formData.get("discord")),
     instagram: text(formData.get("instagram")),
+    emailNotifications: formData.get("emailNotifications") === "on",
   };
   return asSignedInStudent(
     "Saving a Profile",

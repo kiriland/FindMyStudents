@@ -39,3 +39,7 @@ _Avoid_: Status, Link
 **Cooldown**:
 The 7 days after a **Connection Request** is declined, during which its sender can't send the same student another, about any **Course**. Only the sender sees it. Withdrawing a request or removing a **Connection** starts none.
 _Avoid_: Block, Ban
+
+**Notification**:
+An email to a student about a **Connection Request**: one was sent to them, or one they sent was accepted or declined. Each such event sends one, to the student's account email, with no digest. A student can turn all Notifications off; they're on by default.
+_Avoid_: Alert, Message (the note a sender writes on a Connection Request)

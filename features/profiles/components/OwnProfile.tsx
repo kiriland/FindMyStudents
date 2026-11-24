@@ -40,6 +40,8 @@ interface OwnProfileProps {
   pictureUrl: string | null;
   initials: string;
   contacts: Contacts;
+  /** Whether the owner gets Notifications. */
+  emailNotifications: boolean;
   /** The picture, name and Help Offer count at the top of the card. */
   identity: ReactNode;
   /** The read-only contact details, shown in the card outside edit mode. */
@@ -60,6 +62,7 @@ export default function OwnProfile({
   pictureUrl,
   initials,
   contacts,
+  emailNotifications,
   identity,
   contactDetails,
   about,
@@ -118,7 +121,12 @@ export default function OwnProfile({
               pictureUrl={pictureUrl}
               initials={initials}
             />
-            <ProfileForm bio={bio} contacts={contacts} onDone={leaveEditMode} />
+            <ProfileForm
+              bio={bio}
+              contacts={contacts}
+              emailNotifications={emailNotifications}
+              onDone={leaveEditMode}
+            />
             <DeleteAccount />
           </div>
         ) : (
@@ -155,11 +163,20 @@ const CONTACT_INPUTS: Record<
 interface FormProps {
   bio: string;
   contacts: Contacts;
+  emailNotifications: boolean;
   onDone: () => void;
 }
 
-function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
+function ProfileForm({
+  bio: savedBio,
+  contacts,
+  emailNotifications: savedEmailNotifications,
+  onDone,
+}: FormProps) {
   const [bio, setBio] = useState(savedBio);
+  const [emailNotifications, setEmailNotifications] = useState(
+    savedEmailNotifications,
+  );
   // Controlled, so a rejected save keeps what the student typed.
   const [contactValues, setContactValues] = useState<
     Record<ContactField, string>
@@ -299,6 +316,36 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
         </div>
       </section>
 
+      <section className={PANEL} aria-labelledby="profile-notifications-title">
+        <div className={PANEL_HEAD}>
+          <h2 id="profile-notifications-title" className={PANEL_TITLE}>
+            Email notifications
+          </h2>
+        </div>
+        <div className={PANEL_BODY}>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              name="emailNotifications"
+              checked={emailNotifications}
+              aria-describedby="profile-notifications-hint"
+              onChange={(event) => {
+                setEmailNotifications(event.target.checked);
+              }}
+              className="mt-0.5 size-4 shrink-0 accent-brand"
+            />
+            <span className="flex flex-col gap-1">
+              <span className={LABEL_CLASS}>
+                Email me about Connection Requests
+              </span>
+              <span id="profile-notifications-hint" className={HINT_CLASS}>
+                When someone sends you one, or accepts or declines yours.
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+
       {state && "message" in state && (
         <p role="alert" className={ERROR_CLASS}>
           {state.message}
@@ -306,7 +353,8 @@ function ProfileForm({ bio: savedBio, contacts, onDone }: FormProps) {
       )}
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 rounded-card border border-line bg-surface/95 px-[18px] py-3.5 pb-[max(14px,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-20px_rgb(30_58_138/0.3)] backdrop-blur-[10px] max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0">
         <p className="max-w-[40ch] text-sm text-subtle">
-          Your bio and contact details save when you press Save changes.
+          Your bio, contact details and email setting save when you press Save
+          changes.
         </p>
         <div className="flex gap-2 max-sm:w-full">
           <button
