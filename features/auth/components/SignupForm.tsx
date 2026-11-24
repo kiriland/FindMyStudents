@@ -69,6 +69,12 @@ export default function SignupForm() {
       );
       return;
     }
+
+    if (!email.trim().toLowerCase().endsWith("@stu-mail.baruch.cuny.edu")) {
+      setError("Please use your Baruch student email.");
+      return;
+    }
+
     if (!passwordReady) {
       setError(
         "Choose a password that meets every requirement below the password field.",
