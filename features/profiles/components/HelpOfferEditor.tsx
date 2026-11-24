@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import type {
   CoursePage,
+  CourseQuery,
   CourseSummary,
 } from "@/features/courses/course-model";
 
-import { INPUT_CLASS } from "@/components/Input";
 import { buttonClass } from "@/components/ui/button";
 import CourseTag from "@/components/ui/CourseTag";
 import {
@@ -17,10 +17,12 @@ import {
   Spinner,
 } from "@/components/ui/Field";
 import { CloseIcon } from "@/components/ui/icons";
+import SearchBar from "@/components/ui/SearchBar";
 import {
-  courseCodeKey,
-  fetchCoursePage,
-} from "@/features/courses/course-model";
+  useCoursePages,
+  useSearchInput,
+} from "@/features/courses/components/useCoursePages";
+import { courseCodeKey } from "@/features/courses/course-model";
 
 import type { HelpOfferView, Outcome } from "../profiles";
 
@@ -32,57 +34,24 @@ import { SECTION_TITLE } from "./profile-styles";
 
 const SHOWN_RESULTS = 8;
 
-type Search =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "error" }
-  | { status: "done"; page: CoursePage };
-// The last fetch's outcome, tagged with the query it answered.
-type Result = { query: string } & (
-  | { status: "error" }
-  | { status: "done"; page: CoursePage }
-);
-
-/** Courses matching `text`, found the same way the dashboard finds them. */
-function useCourseSearch(text: string): Search {
-  const [result, setResult] = useState<Result | null>(null);
-  const query = text.trim();
-
-  useEffect(() => {
-    if (!query) {
-      return;
-    }
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => {
-      fetchCoursePage(
-        new URLSearchParams({ q: query }).toString(),
-        controller.signal,
-      )
-        .then((page) => {
-          if (!controller.signal.aborted) {
-            setResult({ query, status: "done", page });
-          }
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) {
-            setResult({ query, status: "error" });
-          }
-        });
-    }, 300);
-    return () => {
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [query]);
-
-  // Idle and loading follow from the query, so they're derived rather than stored.
-  if (!query) {
+/**
+ * Courses for the "Add a course" field, searched through the URL like every
+ * other search. Older results count as loading until the latest text is searched.
+ */
+function useHelpOfferSearch(text: string, query: CourseQuery): CourseSearch {
+  const { result, loading, error } = useCoursePages(
+    query.search ? query : null,
+  );
+  if (!text.trim()) {
     return { status: "idle" };
   }
-  if (result?.query !== query) {
+  if (loading || text.trim() !== query.search) {
     return { status: "loading" };
   }
-  return result;
+  if (error || !result) {
+    return { status: "error" };
+  }
+  return { status: "done", page: result };
 }
 
 /**
@@ -94,8 +63,8 @@ export default function HelpOfferEditor({
 }: {
   offers: HelpOfferView[];
 }) {
-  const [text, setText] = useState("");
-  const search = useCourseSearch(text);
+  const { query, text, setText } = useSearchInput();
+  const search = useHelpOfferSearch(text, query);
   const [isPending, startTransition] = useTransition();
   // The Course being added or removed, so only its button shows progress.
   const [busyCode, setBusyCode] = useState<string | null>(null);
@@ -200,18 +169,14 @@ export default function HelpOfferEditor({
         <label htmlFor="help-offer-search" className={LABEL_CLASS}>
           Add a course
         </label>
-        <input
+        <SearchBar
           id="help-offer-search"
-          type="search"
-          maxLength={300}
-          autoComplete="off"
           value={text}
           placeholder="Course code, title or keyword"
           aria-describedby={atLimit ? "help-offer-limit" : undefined}
           onChange={(event) => {
             setText(event.target.value);
           }}
-          className={INPUT_CLASS}
         />
         {atLimit && (
           <p id="help-offer-limit" className={`${HINT_CLASS} text-muted`}>
@@ -234,8 +199,14 @@ export default function HelpOfferEditor({
   );
 }
 
+type CourseSearch =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "done"; page: CoursePage };
+
 interface CourseResultsProps {
-  search: Search;
+  search: CourseSearch;
   offered: Set<string>;
   atLimit: boolean;
   isPending: boolean;

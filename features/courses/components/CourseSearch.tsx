@@ -4,8 +4,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { buttonClass, LINK_CLASS } from "@/components/ui/button";
-import CourseTag from "@/components/ui/CourseTag";
-import { CloseIcon, SearchIcon } from "@/components/ui/icons";
+import { CloseIcon } from "@/components/ui/icons";
+import SearchBar from "@/components/ui/SearchBar";
 
 import type { CoursePage, CourseQuery } from "../course-model";
 
@@ -23,7 +23,7 @@ import CourseCard, { CourseCardSkeleton } from "./CourseCard";
 import DepartmentPicker from "./DepartmentPicker";
 import { searchWords } from "./Highlight";
 import Pagination from "./Pagination";
-import { useCoursePages } from "./useCoursePages";
+import { useCoursePages, useSearchInput } from "./useCoursePages";
 
 function navigate(query: CourseQuery, replace = false) {
   const href = discoveryHref(query);
@@ -68,18 +68,20 @@ export default function CourseSearch() {
   const pathname = usePathname();
   const params = useSearchParams();
   // Course links carry the originating query, including when reached via Back.
-  const query = readCourseQuery(params);
-  const queryKey = queryString(query);
-  const [search, setSearch] = useState(query.search);
-  const { result, departments, loading, error, retry } = useCoursePages(
+  // The field only writes to the URL on the dashboard itself, not under a course panel.
+  const {
+    query,
     queryKey,
+    text: search,
+    setText: setSearch,
+  } = useSearchInput(pathname === DISCOVERY_PATH);
+  const { result, departments, loading, error, retry } = useCoursePages(
+    query,
     replaceQuery,
   );
   const input = useRef<HTMLInputElement>(null);
-  const suggestionList = useRef<HTMLUListElement>(null);
   const sentinel = useRef<HTMLSpanElement>(null);
   const [stuck, setStuck] = useState(false);
-  const [suggesting, setSuggesting] = useState(false);
 
   useEffect(() => {
     if (pathname === DISCOVERY_PATH && params.toString() !== queryKey) {
@@ -90,29 +92,6 @@ export default function CourseSearch() {
       );
     }
   }, [pathname, params, queryKey]);
-
-  // Reset the draft before committing a render for a different URL query.
-  // This also prevents a stale draft from overwriting Back/Forward navigation.
-  const [draftQueryKey, setDraftQueryKey] = useState(queryKey);
-  if (draftQueryKey !== queryKey) {
-    setDraftQueryKey(queryKey);
-    setSearch(query.search);
-  }
-
-  useEffect(() => {
-    if (pathname !== DISCOVERY_PATH || search.trim() === query.search) {
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      navigate(
-        { search: search.trim(), department: query.department, page: 1 },
-        true,
-      );
-    }, 300);
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [search, query.search, query.department, pathname]);
 
   // "/" jumps to the search box from anywhere on the page, unless a field or the course panel has focus.
   useEffect(() => {
@@ -163,17 +142,6 @@ export default function CourseSearch() {
     ? (currentPage.query.page - 1) * PAGE_SIZE + 1
     : 0;
   const words = searchWords(query.search);
-  // Typing the start of a department code offers to filter by that department.
-  const typed = search.trim().toUpperCase();
-  const suggestions = /^[A-Z]{1,5}$/.test(typed)
-    ? departments
-        .filter(
-          (department) =>
-            department.startsWith(typed) && department !== query.department,
-        )
-        .slice(0, 5)
-    : [];
-  const showSuggestions = suggesting && suggestions.length > 0;
 
   function clearFilters() {
     setSearch("");
@@ -188,27 +156,6 @@ export default function CourseSearch() {
 
   function chooseDepartment(department: string) {
     navigate({ search: search.trim(), department, page: 1 });
-  }
-
-  function chooseSuggestion(department: string) {
-    setSuggesting(false);
-    setSearch("");
-    navigate({ search: "", department, page: 1 });
-    input.current?.focus();
-  }
-
-  function moveSuggestionFocus(event: React.KeyboardEvent, step: number) {
-    const items = [
-      ...(suggestionList.current?.querySelectorAll("button") ?? []),
-    ];
-    const index = items.findIndex((item) => item === document.activeElement);
-    const next = index + step;
-    event.preventDefault();
-    if (next < 0) {
-      input.current?.focus();
-    } else {
-      items[Math.min(next, items.length - 1)]?.focus();
-    }
   }
 
   function goToPage(page: number) {
@@ -231,119 +178,47 @@ export default function CourseSearch() {
         className={`sticky top-[68px] z-30 bg-canvas pt-3.5 pb-3 transition-shadow duration-250 ${stuck ? "shadow-[0_1px_0_var(--color-line)]" : ""}`}
       >
         <div className="wrap">
-          <div
-            className="relative"
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                setSuggesting(false);
-              }
+          <label htmlFor="course-search" className="sr-only">
+            Search courses
+          </label>
+          <SearchBar
+            ref={input}
+            id="course-search"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
             }}
-          >
-            <div
-              role="search"
-              className="group relative flex h-14 items-center rounded-2xl border-[1.5px] border-line-strong bg-surface pr-2.5 pl-[50px] transition-[border-color,box-shadow] duration-250 ease-soft focus-within:border-brand focus-within:shadow-[0_0_0_5px_rgb(37_99_235/0.12),0_18px_40px_-24px_rgb(30_58_138/0.45)] hover:border-faint focus-within:hover:border-brand sm:h-16 sm:pl-[58px]"
-            >
-              <SearchIcon className="absolute left-4 size-6 text-subtle transition-[color,scale] duration-250 ease-soft group-focus-within:scale-105 group-focus-within:text-brand sm:left-5" />
-              <label htmlFor="course-search" className="sr-only">
-                Search courses
-              </label>
-              <input
-                ref={input}
-                id="course-search"
-                type="search"
-                maxLength={300}
-                autoComplete="off"
-                enterKeyHint="search"
-                value={search}
-                placeholder="Try CIS 3400, statistics or accounting"
-                aria-describedby="course-search-tip"
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setSuggesting(true);
-                }}
-                onFocus={() => {
-                  setSuggesting(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "ArrowDown" && showSuggestions) {
-                    moveSuggestionFocus(event, 1);
-                  }
-                  if (event.key === "Escape" && showSuggestions) {
-                    event.preventDefault();
-                    setSuggesting(false);
-                  }
-                }}
-                className="h-full min-w-0 flex-1 border-0 bg-transparent text-[17px] placeholder:text-subtle focus:outline-none sm:text-[19px]"
-              />
-              <kbd
-                aria-hidden="true"
-                className="mr-2 hidden h-[26px] min-w-[26px] place-items-center rounded-md border border-b-2 border-line-strong bg-canvas px-1.5 font-display text-[13px] leading-none font-medium text-subtle transition-opacity duration-150 group-focus-within:opacity-0 sm:inline-grid"
-              >
-                /
-              </kbd>
-              {search && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={clearSearch}
-                  className="grid size-10 cursor-pointer place-items-center rounded-ctl text-subtle transition-colors duration-150 hover:bg-well hover:text-ink"
+            placeholder="Try CIS 3400, statistics or accounting"
+            aria-describedby="course-search-tip"
+            trailing={
+              <>
+                <kbd
+                  aria-hidden="true"
+                  className="mr-2 hidden h-[26px] min-w-[26px] place-items-center rounded-md border border-b-2 border-line-strong bg-canvas px-1.5 font-display text-[13px] leading-none font-medium text-subtle transition-opacity duration-150 group-focus-within:opacity-0 sm:inline-grid"
                 >
-                  <CloseIcon className="size-[18px]" />
-                </button>
-              )}
-              <span
-                aria-hidden="true"
-                className={`absolute inset-x-[18px] -bottom-[1.5px] h-0.5 overflow-hidden rounded-xs transition-opacity duration-150 ${updating ? "progress-sweep opacity-100" : "opacity-0"}`}
-              />
-            </div>
-            <span id="course-search-tip" className="sr-only">
-              Results update as you type. Press slash to come back to this
-              search box.
-            </span>
-
-            {showSuggestions && (
-              <div className="absolute inset-x-0 top-[calc(100%+8px)] z-10 rounded-[14px] border border-line bg-surface p-1.5 shadow-float transition-[opacity,translate] duration-250 ease-soft starting:-translate-y-1 starting:opacity-0">
-                <p className="px-2.5 pt-2 pb-1.5 font-display text-xs leading-none font-medium text-subtle">
-                  Departments
-                </p>
-                <ul
-                  ref={suggestionList}
-                  id="department-suggestions"
-                  aria-label="Department suggestions"
-                >
-                  {suggestions.map((department) => (
-                    <li key={department}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          chooseSuggestion(department);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "ArrowDown") {
-                            moveSuggestionFocus(event, 1);
-                          }
-                          if (event.key === "ArrowUp") {
-                            moveSuggestionFocus(event, -1);
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            setSuggesting(false);
-                            input.current?.focus();
-                          }
-                        }}
-                        className="flex w-full cursor-pointer items-center gap-3 rounded-[9px] px-2.5 py-[9px] text-left text-ink-2 transition-colors duration-150 hover:bg-brand-50 hover:text-brand-strong focus-visible:bg-brand-50 focus-visible:text-brand-strong focus-visible:outline-none"
-                      >
-                        <span className="inline-flex min-w-[54px] justify-center">
-                          <CourseTag code={department} />
-                        </span>
-                        Show only {department} courses
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+                  /
+                </kbd>
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={clearSearch}
+                    className="grid size-10 cursor-pointer place-items-center rounded-ctl text-subtle transition-colors duration-150 hover:bg-well hover:text-ink"
+                  >
+                    <CloseIcon className="size-[18px]" />
+                  </button>
+                )}
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-x-[18px] -bottom-[1.5px] h-0.5 overflow-hidden rounded-xs transition-opacity duration-150 ${updating ? "progress-sweep opacity-100" : "opacity-0"}`}
+                />
+              </>
+            }
+          />
+          <span id="course-search-tip" className="sr-only">
+            Results update as you type. Press slash to come back to this search
+            box.
+          </span>
 
           <p role="status" className="sr-only">
             {status}
